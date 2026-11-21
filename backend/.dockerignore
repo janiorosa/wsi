@@ -1,0 +1,7 @@
+*.md
+!templates/**/*.md
+**/*_test.go.orig
+
+# Metadados do macOS
+**/._*
+**/.DS_Store

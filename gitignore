@@ -1,0 +1,233 @@
+# ============================================================
+# .gitignore — Go + React/TypeScript + PostgreSQL + Docker
+# ============================================================
+# Keep this file at the repository root.
+# IMPORTANT: dependency manifests/lockfiles (go.mod, go.sum,
+# package.json, package-lock.json, yarn.lock, pnpm-lock.yaml)
+# are intentionally NOT ignored; they should normally be committed.
+#
+# If a secret was already committed, adding it here does not remove it
+# from Git history. Rotate/revoke it and remove it from tracking/history.
+
+# Environment variables / secrets
+.env
+.env.*
+!.env.example
+!.env.*.example
+!.env.template
+!.env.*.template
+*.env
+*.secret
+*.secrets
+secrets/
+.secret/
+.secrets/
+credentials/
+private/
+*.pem
+*.key
+*.p12
+*.pfx
+*.keystore
+*.jks
+id_rsa
+id_rsa.*
+id_ed25519
+id_ed25519.*
+authorized_keys
+known_hosts
+.aws/
+.azure/
+.gcloud/
+kubeconfig
+kubeconfig.*
+
+# Common secret/config files
+secrets.yml
+secrets.yaml
+secret.yml
+secret.yaml
+credentials.json
+service-account*.json
+*-service-account*.json
+firebase-adminsdk*.json
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.json
+
+# Go
+/bin/
+/dist-go/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+coverage.out
+coverage.html
+*.prof
+*.pprof
+*.cover
+/vendor/
+# Keep go.mod and go.sum tracked.
+
+# React / Node / TypeScript
+node_modules/
+**/node_modules/
+/.npm/
+.npm/
+.pnpm-store/
+.yarn/cache/
+.yarn/unplugged/
+.yarn/build-state.yml
+.yarn/install-state.gz
+.parcel-cache/
+.turbo/
+.vite/
+.next/
+.nuxt/
+.svelte-kit/
+.cache/
+.eslintcache
+.stylelintcache
+*.tsbuildinfo
+coverage/
+.nyc_output/
+storybook-static/
+# Build outputs (adjust if your project intentionally tracks these)
+/build/
+/dist/
+/out/
+# Keep package.json and package manager lockfiles tracked.
+
+# General compiled artifacts
+*.o
+*.a
+*.so
+*.dylib
+*.dll
+*.class
+*.jar
+*.war
+*.ear
+*.pyc
+*.pyo
+__pycache__/
+*.wasm
+*.map
+*.min.js
+*.min.css
+
+# PostgreSQL / local database data
+*.db
+*.sqlite
+*.sqlite3
+*.dump
+*.backup
+*.bak
+*.sql.gz
+*.pgdump
+pgdata/
+postgres_data/
+database-data/
+db-data/
+data/
+# Keep schema and migration source files tracked.
+
+# Docker / local runtime state
+.docker/
+docker-data/
+docker-volumes/
+volumes/
+*.pid
+*.pid.lock
+*.sock
+*.log
+logs/
+tmp/
+temp/
+.cache-runtime/
+
+# Uploaded/generated application files
+# Use .gitkeep if empty directory structure must be retained.
+storage/
+uploads/
+generated/
+generated-files/
+document-output/
+document-jobs/
+runtime/
+# Do NOT ignore *.pdf or *.tex globally: official templates and references
+# may need to be committed.
+
+# LaTeX / XeLaTeX generated files
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.lof
+*.lot
+*.out
+*.run.xml
+*.synctex.gz
+*.toc
+*.xdv
+*.nav
+*.snm
+*.vrb
+*.idx
+*.ilg
+*.ind
+*.latexmk
+
+# Python (scripts/tooling, if used)
+.venv/
+venv/
+ENV/
+env/
+__pypackages__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+htmlcov/
+pip-wheel-metadata/
+
+# IDEs / editors
+.idea/
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.example.json
+*.sublime-workspace
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# Operating systems
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# Test / debug / profiling output
+test-results/
+playwright-report/
+blob-report/
+*.profraw
+*.gcda
+*.gcno
+core
+core.*

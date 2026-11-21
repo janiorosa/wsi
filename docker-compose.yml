@@ -1,0 +1,87 @@
+# Sistema WSI — eventos de TCC (IFMG Campus Ouro Branco)
+#
+#   docker compose up -d --build        # sobe/atualiza (dados preservados)
+#   docker compose down                 # para (dados preservados)
+#   NUNCA use "docker compose down -v" em produção: apaga os volumes de dados.
+#
+name: wsi
+
+services:
+  postgres:
+    image: postgres:16.4-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-wsi}
+      POSTGRES_USER: ${POSTGRES_USER:-wsi}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no arquivo .env}
+      TZ: America/Sao_Paulo
+    volumes:
+      - postgres_dados:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-wsi} -d ${POSTGRES_DB:-wsi}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  backend:
+    build:
+      context: ./backend
+      target: final
+    restart: unless-stopped
+    environment:
+      WSI_URL_BANCO: postgres://${POSTGRES_USER:-wsi}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-wsi}?sslmode=disable
+      WSI_COOKIE_SEGURO: ${WSI_COOKIE_SEGURO:-false}
+      WSI_EMAIL_ADMIN_INICIAL: ${WSI_EMAIL_ADMIN_INICIAL:-janio.silva@ifmg.edu.br}
+      WSI_CONCORRENCIA_FILA: ${WSI_CONCORRENCIA_FILA:-1}
+      WSI_TAMANHO_MAXIMO_UPLOAD_MB: ${WSI_TAMANHO_MAXIMO_UPLOAD_MB:-30}
+      WSI_ORIGENS_PERMITIDAS: ${WSI_ORIGENS_PERMITIDAS:-}
+      TZ: America/Sao_Paulo
+    volumes:
+      - arquivos:/dados
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    ports:
+      - "${WSI_PORTA:-8080}:80"
+    depends_on:
+      - backend
+
+  # ----------------------------------------------------------------- testes
+  postgres-testes:
+    profiles: ["testes"]
+    image: postgres:16.4-alpine
+    environment:
+      POSTGRES_DB: wsi_testes
+      POSTGRES_USER: wsi
+      POSTGRES_PASSWORD: wsi_testes
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wsi -d wsi_testes"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  testes-backend:
+    profiles: ["testes"]
+    build:
+      context: ./backend
+      target: testes
+    environment:
+      WSI_TESTE_BANCO_URL: postgres://wsi:wsi_testes@postgres-testes:5432/wsi_testes?sslmode=disable
+      WSI_DIRETORIO_TESTES_VISUAIS: /saida
+    volumes:
+      - ./dados/testes-visuais:/saida
+    depends_on:
+      postgres-testes:
+        condition: service_healthy
+
+volumes:
+  postgres_dados:
+    name: wsi_postgres_dados
+  arquivos:
+    name: wsi_arquivos

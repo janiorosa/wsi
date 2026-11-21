@@ -1,0 +1,1500 @@
+openapi: 3.0.3
+info:
+  title: WSI — API de eventos de TCC
+  version: 1.0.0
+  description: |
+    API REST do sistema (IFMG Campus Ouro Branco). Autenticação por cookie HttpOnly `wsi_sessao`.
+    Métodos que alteram estado exigem o cabeçalho `X-CSRF-Token` (valor obtido em /auth/sessao).
+    Erros: `{"erro": {"codigo", "mensagem", "campos"}}`.
+servers:
+  - url: /api/v1
+components:
+  securitySchemes:
+    sessao:
+      type: apiKey
+      in: cookie
+      name: wsi_sessao
+    csrf:
+      type: apiKey
+      in: header
+      name: X-CSRF-Token
+  schemas:
+    Erro:
+      type: object
+      properties:
+        erro:
+          type: object
+          properties:
+            codigo: {type: string}
+            mensagem: {type: string}
+            campos: {type: object, additionalProperties: {type: string}}
+    Entrar:
+      type: object
+      properties:
+        email: {type: string}
+        senha: {type: string}
+    Cadastro:
+      type: object
+      properties:
+        nome: {type: string}
+        email: {type: string}
+        telefone: {type: string}
+        identificador: {type: string}
+        curso: {type: string}
+        senha: {type: string}
+    DefinirSenha:
+      type: object
+      properties:
+        nome: {type: string}
+        email: {type: string}
+        identificador: {type: string}
+        senha: {type: string}
+    Contexto:
+      type: object
+      properties:
+        contexto: {type: string}
+paths:
+  /saude:
+    get:
+      tags: [saude]
+      summary: "Verifica API e banco"
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /publico/eventos:
+    get:
+      tags: [publico]
+      summary: "Lista eventos públicos (não rascunho)"
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /publico/eventos/{slug}:
+    get:
+      tags: [publico]
+      summary: "Página pública: dados, programação e publicações publicadas"
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: {type: string}
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /publico/eventos/{slug}/capa:
+    get:
+      tags: [publico]
+      summary: "Imagem de capa do evento"
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: {type: string}
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /publico/publicacoes/{id}/arquivo:
+    get:
+      tags: [publico]
+      summary: "PDF publicado (anais ou apresentações)"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /auth/sessao:
+    get:
+      tags: [autenticacao]
+      summary: "Sessão atual, perfis, contexto e token CSRF"
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /auth/entrar:
+    post:
+      tags: [autenticacao]
+      summary: "Login por e-mail e senha"
+      requestBody:
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/Entrar'}
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /auth/cadastro/aluno:
+    post:
+      tags: [autenticacao]
+      summary: "Cadastro livre de aluno (ativo imediatamente)"
+      requestBody:
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/Cadastro'}
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /auth/cadastro/docente:
+    post:
+      tags: [autenticacao]
+      summary: "Solicitação de cadastro de docente (pendente de aprovação)"
+      requestBody:
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/Cadastro'}
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /auth/primeiro-acesso:
+    post:
+      tags: [autenticacao]
+      summary: "Primeiro acesso: cria a senha com nome completo, e-mail e matrícula/SIAPE (somente contas sem senha)"
+      requestBody:
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/DefinirSenha'}
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /auth/sair:
+    post:
+      tags: [autenticacao]
+      summary: "Encerra a sessão"
+      security:
+        - sessao: []
+          csrf: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /auth/contexto:
+    post:
+      tags: [autenticacao]
+      summary: "Escolhe o contexto da sessão (ADMIN, DOCENTE)"
+      requestBody:
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/Contexto'}
+      security:
+        - sessao: []
+          csrf: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /conta:
+    get:
+      tags: [conta]
+      summary: "Dados da própria conta"
+      security:
+        - sessao: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+    put:
+      tags: [conta]
+      summary: "Atualiza dados da própria conta"
+      security:
+        - sessao: []
+          csrf: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /conta/senha:
+    post:
+      tags: [conta]
+      summary: "Troca a senha"
+      security:
+        - sessao: []
+          csrf: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /tarefas/{id}:
+    get:
+      tags: [documentos]
+      summary: "Estado de uma tarefa da fila (solicitante ou ADMIN)"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      security:
+        - sessao: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /arquivos/{id}:
+    get:
+      tags: [arquivos]
+      summary: "Baixa artigo/apresentação (aluno, orientador, banca ou apresentador)"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      security:
+        - sessao: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /documentos/{id}:
+    get:
+      tags: [documentos]
+      summary: "Baixa a declaração anti-plágio gerada (próprio aluno)"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      security:
+        - sessao: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /declaracoes-assinadas/{id}:
+    get:
+      tags: [documentos]
+      summary: "Baixa a declaração assinada (aluno ou orientador)"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      security:
+        - sessao: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /atas/{id}:
+    get:
+      tags: [atas]
+      summary: "Situação do fluxo de assinaturas (somente signatários)"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      security:
+        - sessao: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /atas/{id}/documento:
+    get:
+      tags: [atas]
+      summary: "Baixa a ATA: signatário da vez, ou participantes após finalizada"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      security:
+        - sessao: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /atas/{id}/assinatura:
+    post:
+      tags: [atas]
+      summary: "Envia PDF assinado (multipart: arquivo, posicao); avança uma posição"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      security:
+        - sessao: []
+          csrf: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /admin/painel:
+    get:
+      tags: [admin]
+      summary: "Painel administrativo"
+      security:
+        - sessao: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /admin/usuarios:
+    get:
+      tags: [admin]
+      summary: "Lista usuários (busca, perfil, paginação, ordem)"
+      security:
+        - sessao: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+    post:
+      tags: [admin]
+      summary: "Cadastra usuário (matrícula/SIAPE obrigatório); a pessoa cria a senha no primeiro acesso"
+      security:
+        - sessao: []
+          csrf: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /admin/usuarios/{id}:
+    get:
+      tags: [admin]
+      summary: "Detalha usuário"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      security:
+        - sessao: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+    patch:
+      tags: [admin]
+      summary: "Atualiza dados/situação do usuário"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      security:
+        - sessao: []
+          csrf: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /admin/usuarios/{id}/perfis:
+    post:
+      tags: [admin]
+      summary: "Atribui perfil ADMIN ou DOCENTE (nunca a ALUNO)"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      security:
+        - sessao: []
+          csrf: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /admin/usuarios/{id}/perfis/{perfil}:
+    delete:
+      tags: [admin]
+      summary: "Remove perfil ADMIN ou DOCENTE"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+        - name: perfil
+          in: path
+          required: true
+          schema: {type: string}
+      security:
+        - sessao: []
+          csrf: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /admin/usuarios/{id}/redefinir-acesso:
+    post:
+      tags: [admin]
+      summary: "Redefine o acesso: apaga a senha e encerra sessões (a pessoa refaz o primeiro acesso)"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      security:
+        - sessao: []
+          csrf: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /admin/docentes/{id}/aprovar:
+    post:
+      tags: [admin]
+      summary: "Aprova solicitação de DOCENTE"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      security:
+        - sessao: []
+          csrf: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /admin/docentes/{id}/rejeitar:
+    post:
+      tags: [admin]
+      summary: "Rejeita solicitação de DOCENTE"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      security:
+        - sessao: []
+          csrf: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /admin/vinculos:
+    get:
+      tags: [admin]
+      summary: "Lista vínculos de orientação"
+      security:
+        - sessao: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+    post:
+      tags: [admin]
+      summary: "Cria vínculo (troca exige confirmarTroca)"
+      security:
+        - sessao: []
+          csrf: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /admin/vinculos/{id}/encerrar:
+    post:
+      tags: [admin]
+      summary: "Encerra vínculo (histórico preservado)"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      security:
+        - sessao: []
+          csrf: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /admin/eventos:
+    get:
+      tags: [admin]
+      summary: "Lista eventos"
+      security:
+        - sessao: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+    post:
+      tags: [admin]
+      summary: "Cria evento"
+      security:
+        - sessao: []
+          csrf: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /admin/eventos/{id}:
+    get:
+      tags: [admin]
+      summary: "Detalha evento (sessões, apresentadores, trabalhos, publicações)"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      security:
+        - sessao: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+    put:
+      tags: [admin]
+      summary: "Atualiza evento"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      security:
+        - sessao: []
+          csrf: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /admin/eventos/{id}/capa:
+    post:
+      tags: [admin]
+      summary: "Envia imagem de capa (PNG/JPEG)"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      security:
+        - sessao: []
+          csrf: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /admin/eventos/{id}/sessoes:
+    post:
+      tags: [admin]
+      summary: "Cria sessão do evento"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      security:
+        - sessao: []
+          csrf: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /admin/sessoes/{id}:
+    put:
+      tags: [admin]
+      summary: "Atualiza sessão"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      security:
+        - sessao: []
+          csrf: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+    delete:
+      tags: [admin]
+      summary: "Remove sessão sem trabalhos"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      security:
+        - sessao: []
+          csrf: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /admin/eventos/{id}/apresentadores:
+    post:
+      tags: [admin]
+      summary: "Atribui APRESENTADOR (docente) ao evento"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      security:
+        - sessao: []
+          csrf: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /admin/eventos/{id}/apresentadores/{docenteId}:
+    delete:
+      tags: [admin]
+      summary: "Remove apresentador"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+        - name: docenteId
+          in: path
+          required: true
+          schema: {type: string}
+      security:
+        - sessao: []
+          csrf: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /admin/eventos/{id}/programacao:
+    put:
+      tags: [admin]
+      summary: "Define a ordem dos trabalhos"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      security:
+        - sessao: []
+          csrf: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /admin/trabalhos:
+    get:
+      tags: [admin]
+      summary: "Acompanhamento de trabalhos (sem notas, avaliações ou ATAs)"
+      security:
+        - sessao: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /admin/trabalhos/{id}/evento:
+    post:
+      tags: [admin]
+      summary: "Exceção: associa trabalho a evento já ocorrido (justificativa obrigatória)"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      security:
+        - sessao: []
+          csrf: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /admin/criterios:
+    get:
+      tags: [admin]
+      summary: "Lista critérios gerais"
+      security:
+        - sessao: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+    post:
+      tags: [admin]
+      summary: "Cria critério geral (0 a 100, sem peso)"
+      security:
+        - sessao: []
+          csrf: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /admin/criterios/{id}:
+    put:
+      tags: [admin]
+      summary: "Atualiza critério geral"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      security:
+        - sessao: []
+          csrf: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /admin/configuracoes:
+    get:
+      tags: [admin]
+      summary: "Cabeçalho institucional e cidade"
+      security:
+        - sessao: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+    put:
+      tags: [admin]
+      summary: "Salva cabeçalho institucional e cidade"
+      security:
+        - sessao: []
+          csrf: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /admin/tarefas:
+    get:
+      tags: [admin]
+      summary: "Lista tarefas da fila de documentos"
+      security:
+        - sessao: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /admin/tarefas/{id}/reprocessar:
+    post:
+      tags: [admin]
+      summary: "Reprocessa tarefa que falhou"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      security:
+        - sessao: []
+          csrf: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /admin/auditoria:
+    get:
+      tags: [admin]
+      summary: "Registros de auditoria"
+      security:
+        - sessao: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /docente/painel:
+    get:
+      tags: [docente]
+      summary: "Painel docente (avaliações, ATAs, orientandos)"
+      security:
+        - sessao: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /docente/docentes:
+    get:
+      tags: [docente]
+      summary: "Docentes aprovados (para montar banca)"
+      security:
+        - sessao: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /docente/eventos-futuros:
+    get:
+      tags: [docente]
+      summary: "Eventos futuros abertos e suas sessões"
+      security:
+        - sessao: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /docente/orientandos:
+    get:
+      tags: [docente]
+      summary: "Meus orientandos (busca por nome/matrícula)"
+      security:
+        - sessao: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+    post:
+      tags: [docente]
+      summary: "Vincula aluno sem orientador"
+      security:
+        - sessao: []
+          csrf: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /docente/alunos-disponiveis:
+    get:
+      tags: [docente]
+      summary: "Alunos sem orientador"
+      security:
+        - sessao: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /docente/orientandos/novo:
+    post:
+      tags: [docente]
+      summary: "Cadastro simplificado de aluno (matrícula obrigatória) + vínculo"
+      security:
+        - sessao: []
+          csrf: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /docente/vinculos/{id}/encerrar:
+    post:
+      tags: [docente]
+      summary: "Encerra vínculo com orientando"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      security:
+        - sessao: []
+          csrf: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /docente/trabalhos/{id}:
+    get:
+      tags: [docente]
+      summary: "Ficha do trabalho (conteúdo conforme o papel)"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      security:
+        - sessao: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /docente/trabalhos/{id}/evento:
+    put:
+      tags: [docente]
+      summary: "Associa trabalho a evento futuro (orientador)"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      security:
+        - sessao: []
+          csrf: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /docente/trabalhos/{id}/banca:
+    put:
+      tags: [docente]
+      summary: "Define examinadores, em ordem (orientador)"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      security:
+        - sessao: []
+          csrf: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /docente/trabalhos/{id}/criterios:
+    post:
+      tags: [docente]
+      summary: "Cria critério extra (orientador)"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      security:
+        - sessao: []
+          csrf: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /docente/trabalhos/{id}/criterios/{criterioId}:
+    delete:
+      tags: [docente]
+      summary: "Remove critério extra"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+        - name: criterioId
+          in: path
+          required: true
+          schema: {type: string}
+      security:
+        - sessao: []
+          csrf: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /docente/trabalhos/{id}/avaliacoes/{avaliadorId}/reabrir:
+    post:
+      tags: [docente]
+      summary: "Reabre avaliação (orientador, auditado)"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+        - name: avaliadorId
+          in: path
+          required: true
+          schema: {type: string}
+      security:
+        - sessao: []
+          csrf: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /docente/trabalhos/{id}/ata:
+    post:
+      tags: [docente]
+      summary: "Gera (ou regenera antes da 1ª assinatura) a ATA"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      security:
+        - sessao: []
+          csrf: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /docente/trabalhos/{id}/ata/reiniciar:
+    post:
+      tags: [docente]
+      summary: "Cancela o processo da ATA (auditado) e opcionalmente gera nova"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      security:
+        - sessao: []
+          csrf: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /docente/avaliacoes:
+    get:
+      tags: [docente]
+      summary: "Trabalhos destinados ao docente para avaliação"
+      security:
+        - sessao: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /docente/avaliacoes/{trabalhoId}:
+    get:
+      tags: [docente]
+      summary: "Tela de avaliação (critérios e notas)"
+      parameters:
+        - name: trabalhoId
+          in: path
+          required: true
+          schema: {type: string}
+      security:
+        - sessao: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+    put:
+      tags: [docente]
+      summary: "Salva rascunho ou finaliza avaliação"
+      parameters:
+        - name: trabalhoId
+          in: path
+          required: true
+          schema: {type: string}
+      security:
+        - sessao: []
+          csrf: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /docente/atas:
+    get:
+      tags: [docente]
+      summary: "ATAs para assinar (um processo por trabalho)"
+      security:
+        - sessao: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /apresentador/eventos:
+    get:
+      tags: [apresentador]
+      summary: "Eventos em que o docente é apresentador"
+      security:
+        - sessao: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /apresentador/eventos/{id}:
+    get:
+      tags: [apresentador]
+      summary: "Painel do apresentador (arquivos, pendências, publicações)"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      security:
+        - sessao: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /apresentador/eventos/{id}/programacao:
+    put:
+      tags: [apresentador]
+      summary: "Define a ordem dos trabalhos"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      security:
+        - sessao: []
+          csrf: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /apresentador/eventos/{id}/publicacoes:
+    post:
+      tags: [apresentador]
+      summary: "Gera anais ou PDF das apresentações (tipo)"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      security:
+        - sessao: []
+          csrf: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /apresentador/publicacoes/{id}/arquivo:
+    get:
+      tags: [apresentador]
+      summary: "Baixa o PDF gerado para conferência"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      security:
+        - sessao: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /apresentador/publicacoes/{id}/publicar:
+    post:
+      tags: [apresentador]
+      summary: "Publica (substitui a versão publicada anterior)"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      security:
+        - sessao: []
+          csrf: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /aluno/painel:
+    get:
+      tags: [aluno]
+      summary: "Painel do aluno (trabalho, arquivos, declaração, ATA, próximos passos)"
+      security:
+        - sessao: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /aluno/trabalho:
+    put:
+      tags: [aluno]
+      summary: "Salva título, resumo e link do Overleaf"
+      security:
+        - sessao: []
+          csrf: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /aluno/trabalho/arquivos/{tipo}:
+    post:
+      tags: [aluno]
+      summary: "Envia artigo ou apresentação (PDF, nova versão)"
+      parameters:
+        - name: tipo
+          in: path
+          required: true
+          schema: {type: string}
+      security:
+        - sessao: []
+          csrf: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /aluno/docentes:
+    get:
+      tags: [aluno]
+      summary: "Docentes disponíveis para orientação"
+      security:
+        - sessao: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /aluno/orientador:
+    post:
+      tags: [aluno]
+      summary: "Escolhe orientador (troca exige confirmarTroca)"
+      security:
+        - sessao: []
+          csrf: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /aluno/declaracao/gerar:
+    post:
+      tags: [aluno]
+      summary: "Coloca a geração da declaração na fila"
+      security:
+        - sessao: []
+          csrf: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /aluno/declaracao/assinada:
+    post:
+      tags: [aluno]
+      summary: "Envia a declaração assinada (PDF)"
+      security:
+        - sessao: []
+          csrf: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}

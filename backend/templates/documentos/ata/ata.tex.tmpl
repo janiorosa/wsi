@@ -1,0 +1,68 @@
+<<template "preambulo" .>>
+% Bloco de assinatura indivisível: linha acima da identificação, com espaço para assinar.
+\newcommand{\assinatura}[1]{%
+\par\noindent\begin{minipage}{\linewidth}\centering
+\vspace*{2.2cm}
+\rule{\linewidth}{0.4pt}\par\vspace{3pt}
+\textbf{#1}\par
+\end{minipage}\par\vspace{0.2cm}}
+
+\begin{document}
+
+% ======================= PÁGINA 1 =======================
+\begin{center}
+\textbf{ANEXO II – ATA DE CONCLUSÃO DE TCC}
+\end{center}
+
+\noindent Aos \textbf{\uline{<<.Dia>>}} dias do mês de \textbf{\uline{<<.Mes>>}} de \textbf{\uline{<<.Ano>>}}, às \textbf{\uline{<<.Horario>>}} horas, \textbf{\uline{<<.NomeAluno>>}}, aluno(a) regularmente matriculado no Curso de Sistemas de Informação do Instituto Federal de Minas Gerais, campus Ouro Branco, matrícula \textbf{\uline{<<.Matricula>>}}, concluiu o seu Trabalho de Conclusão de Curso por meio de:
+
+\vspace{0.4cm}
+
+\begin{framed}
+\setlength{\parindent}{0pt}
+( ) Publicação do artigo intitulado \hrulefill\ na revista/conferência \hrulefill, cujo comprovante de aceitação será anexado a esta ata, recebendo a nota \hrulefill\ pelo trabalho. Eu, na qualidade de orientador do aluno, lavrei a presente ata atestando a conclusão do trabalho, a qual será assinada por mim e pelo aluno.
+
+\vspace{0.5cm}
+
+Professor Orientador: \hrulefill
+
+Aluno: \hrulefill
+
+\vspace{0.5cm}
+
+(\textbf{\uline{X}}) Defesa em sessão pública realizada às \textbf{\uline{<<.Horario>>}} horas, na sala \textbf{\uline{<<.Local>>}} do Instituto Federal de Minas Gerais, campus Ouro Branco, na presença da banca examinadora composta pelos docentes:
+
+<<range .ListaBanca>>\textbf{\uline{<<.>>}}\par
+<<end>>
+\vspace{\baselineskip}
+do artigo intitulado \textbf{\uline{<<.Titulo>>}}
+
+\vspace{1cm}
+\end{framed}
+
+% ======================= PÁGINA 2 (e seguintes) =======================
+% Molduras indivisíveis (\fbox + minipage), como no modelo. A página 2 recebe até
+% 4 blocos de assinatura (caso usual: orientador + 2 examinadores + aluno); blocos
+% excedentes continuam em nova página. Se algo exceder a página, a geração falha.
+\newpage
+
+\noindent\fbox{\begin{minipage}{\dimexpr\linewidth-2\fboxsep-2\fboxrule\relax}
+\setlength{\parindent}{0pt}
+A banca examinadora, após reunião em sessão reservada, deliberou pela \textbf{\uline{<<.Deliberacao>>}} do referido trabalho, atribuindo a nota \textbf{\uline{<<.NotaFinal>>}}. Eu, na qualidade de presidente da banca examinadora, lavrei a presente ata que será assinada por mim, pelos demais examinadores e pelo aluno.
+
+\vspace{\baselineskip}
+{\centering\textbf{NOME E ASSINATURA DOS COMPONENTES DA BANCA E DO ORIENTADO}\par}
+<<range index .PaginasAssinaturas 0>>\assinatura{<<.Rotulo>>: <<.Nome>>}
+<<end>>\vspace{0.6cm}
+\end{minipage}}
+<<range $i, $pagina := .PaginasAssinaturas>><<if $i>>
+\newpage
+
+\noindent\fbox{\begin{minipage}{\dimexpr\linewidth-2\fboxsep-2\fboxrule\relax}
+\setlength{\parindent}{0pt}
+<<range $pagina>>\assinatura{<<.Rotulo>>: <<.Nome>>}
+<<end>>\vspace{0.6cm}
+\end{minipage}}
+<<end>><<end>>
+
+\end{document}

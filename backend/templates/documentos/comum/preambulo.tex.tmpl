@@ -1,0 +1,37 @@
+<<define "preambulo">>% Gerado automaticamente pelo sistema WSI. Não editar o PDF/TeX gerado.
+\documentclass[a4paper,12pt]{article}
+\usepackage{fontspec}            % XeLaTeX: Latin Modern (equivalente ao Computer Modern dos modelos)
+\usepackage[brazil]{babel}
+\usepackage{graphicx}
+\usepackage[normalem]{ulem}      % \uline: sublinhado que quebra linha (nomes e títulos longos)
+\usepackage{framed}              % moldura que pode continuar na página seguinte
+\usepackage{fancyhdr}
+\usepackage[a4paper,left=2.5cm,right=2.5cm,bottom=2.5cm,top=0.5cm]{geometry}
+
+% Tolerâncias para que nenhum texto ultrapasse a margem.
+\tolerance=2000
+\emergencystretch=3em
+
+% ---------------------------------------------------------------------
+% Cabeçalho institucional: medido aqui e repetido em todas as páginas,
+% começando a 0,5 cm do topo da folha.
+% ---------------------------------------------------------------------
+\newsavebox{\caixacabecalho}
+\sbox{\caixacabecalho}{%
+\parbox[b]{16cm}{\centering
+\includegraphics[width=6.4cm,keepaspectratio]{brasao.png}\par
+<<range .Cabecalho>><<if .Negrito>>\textbf{<<.Texto>>}<<else>><<.Texto>><<end>>\par
+<<end>>}}
+\newlength{\alturacabecalho}
+\setlength{\alturacabecalho}{\ht\caixacabecalho}
+\addtolength{\alturacabecalho}{\dp\caixacabecalho}
+\addtolength{\alturacabecalho}{2pt}
+\geometry{includehead,headheight=\alturacabecalho,headsep=1cm}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[C]{\usebox{\caixacabecalho}}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+<<end>>
