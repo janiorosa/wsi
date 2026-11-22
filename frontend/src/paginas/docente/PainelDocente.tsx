@@ -5,10 +5,13 @@ import FactCheckIcon from '@mui/icons-material/FactCheck';
 import SchoolIcon from '@mui/icons-material/School';
 import DrawIcon from '@mui/icons-material/Draw';
 import CampaignIcon from '@mui/icons-material/Campaign';
+import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import { api } from '../../api/cliente';
 import { CartaoResumo, Carregando, ErroCarregamento, EstadoChip, Grade, Secao, Titulo, Vazio } from '../../componentes/Comuns';
 import { useSessao } from '../../sessao/SessaoContexto';
 import { estadosTrabalho, rotulo } from '../../utilitarios/rotulos';
+import { FormularioAvaliacao } from './FormularioAvaliacao';
+import type { EventoVotacao } from './Premiacoes';
 
 export interface ItemAvaliacao { trabalhoId: string; titulo: string; aluno: string; evento: string | null; dataEvento: string | null; papel: string; estadoAvaliacao: string; nota: string | null; estadoTrabalho: string }
 export interface ItemATA { ataId: string; trabalhoId: string; titulo: string; aluno: string; evento: string; estado: string; posicaoAtual: number; minhaOrdem: number; meuRotulo: string; jaAssinei: boolean; minhaVez: boolean; aguardando: string; totalSignatarios: number }
@@ -18,6 +21,9 @@ interface Painel { avaliacoesPendentes: ItemAvaliacao[]; avaliacoesConcluidas: n
 export function PainelDocente() {
   const { sessao } = useSessao();
   const { data, isLoading, error } = useQuery({ queryKey: ['docente', 'painel'], queryFn: () => api.get<Painel>('/docente/painel'), refetchInterval: 20000 });
+  const { data: votacoes } = useQuery({ queryKey: ['docente', 'premiacoes'], queryFn: () => api.get<EventoVotacao[]>('/docente/premiacoes') });
+  const premiacoesAbertas = (votacoes ?? []).reduce((n, e) => n + e.premiacoes.length, 0);
+  const votosPendentes = (votacoes ?? []).reduce((n, e) => n + e.premiacoes.filter((p) => p.meusVotos.length === 0).length, 0);
   return (
     <>
       <Titulo
@@ -39,26 +45,26 @@ export function PainelDocente() {
               <strong>É a sua vez de assinar {data.atasMinhaVez.length} ATA(s).</strong>
             </Alert>
           )}
+          {votosPendentes > 0 && (
+            <Alert severity="info" icon={<EmojiEventsIcon />} sx={{ mb: 3 }} action={<Button color="inherit" component={RouterLink} to="/docente/premiacoes">Votar</Button>}>
+              <strong>Premiações abertas para votação.</strong> Vote em até dois trabalhos por premiação.
+            </Alert>
+          )}
+          {!data.criteriosConfigurados && <Alert severity="info" sx={{ mb: 3 }}>A administração ainda não cadastrou o critério geral de avaliação.</Alert>}
+          <Secao titulo={`Trabalhos para avaliar (${data.avaliacoesPendentes.length})`} dica="Digite a nota: ela é salva automaticamente e pode ser alterada até você clicar em Enviar avaliação."
+            acoes={<Button component={RouterLink} to="/docente/avaliar">Ver todas</Button>}>
+            {data.avaliacoesPendentes.length === 0 ? <Vazio>Nenhuma avaliação pendente.</Vazio> : (
+              data.avaliacoesPendentes.map((a) => <FormularioAvaliacao key={a.trabalhoId} trabalhoId={a.trabalhoId} compacto />)
+            )}
+          </Secao>
           <Grade>
             <CartaoResumo titulo="Avaliações pendentes" valor={data.avaliacoesPendentes.length} icone={<FactCheckIcon />} para="/docente/avaliar" alerta={data.avaliacoesPendentes.length > 0} />
             <CartaoResumo titulo="Avaliações concluídas" valor={data.avaliacoesConcluidas} icone={<FactCheckIcon />} para="/docente/avaliar" />
             <CartaoResumo titulo="ATAs aguardando sua assinatura" valor={data.atasMinhaVez.length} descricao={`${data.atasAguardandoOutros} aguardando outros signatários`} icone={<DrawIcon />} para="/docente/atas" alerta={data.atasMinhaVez.length > 0} />
             <CartaoResumo titulo="Orientandos" valor={data.orientandos.length} icone={<SchoolIcon />} para="/docente/orientandos" />
             {data.eventosComoApresentador > 0 && <CartaoResumo titulo="Eventos como apresentador" valor={data.eventosComoApresentador} icone={<CampaignIcon />} para="/docente/apresentador" />}
+            {premiacoesAbertas > 0 && <CartaoResumo titulo="Premiações em votação" valor={premiacoesAbertas} descricao={votosPendentes > 0 ? `${votosPendentes} sem o seu voto` : 'Você já votou'} icone={<EmojiEventsIcon />} para="/docente/premiacoes" alerta={votosPendentes > 0} />}
           </Grade>
-          {!data.criteriosConfigurados && <Alert severity="info" sx={{ mb: 3 }}>A administração ainda não cadastrou o critério geral de avaliação.</Alert>}
-          <Secao titulo="Avaliações pendentes" acoes={<Button component={RouterLink} to="/docente/avaliar">AVALIAR</Button>}>
-            {data.avaliacoesPendentes.length === 0 ? <Vazio>Nenhuma avaliação pendente.</Vazio> : (
-              <List>
-                {data.avaliacoesPendentes.map((a) => (
-                  <ListItemButton key={a.trabalhoId} component={RouterLink} to={`/docente/avaliar/${a.trabalhoId}`}>
-                    <ListItemText primary={a.titulo || 'Trabalho sem título'} secondary={`${a.aluno}${a.evento ? ` · ${a.evento} (${a.dataEvento})` : ''} · ${a.papel === 'orientador' ? 'como orientador' : 'como examinador'}`} />
-                    <Button variant="contained" size="small">Avaliar</Button>
-                  </ListItemButton>
-                ))}
-              </List>
-            )}
-          </Secao>
           <Secao titulo="Meus orientandos" acoes={<Button component={RouterLink} to="/docente/orientandos">Ver todos</Button>}>
             {data.orientandos.length === 0 ? (
               <Vazio>Você ainda não tem orientandos. <Button component={RouterLink} to="/docente/orientandos">Vincular aluno</Button></Vazio>

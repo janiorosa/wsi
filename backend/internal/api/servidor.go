@@ -121,6 +121,9 @@ func (s *Servidor) Rotas() http.Handler {
 				r.Post("/eventos/{id}/apresentadores", s.h(s.adminAdicionarApresentador))
 				r.Delete("/eventos/{id}/apresentadores/{docenteId}", s.h(s.adminRemoverApresentador))
 				r.Put("/eventos/{id}/programacao", s.h(s.definirProgramacao))
+				r.Post("/eventos/{id}/premiacoes", s.h(s.adminCriarPremiacao))
+				r.Put("/premiacoes/{id}", s.h(s.adminAtualizarPremiacao))
+				r.Delete("/premiacoes/{id}", s.h(s.adminRemoverPremiacao))
 				r.Get("/trabalhos", s.h(s.adminListarTrabalhos))
 				r.Post("/trabalhos/{id}/evento", s.h(s.adminAssociarEventoExcecao))
 
@@ -160,6 +163,11 @@ func (s *Servidor) Rotas() http.Handler {
 				r.Get("/avaliacoes", s.h(s.docenteListarAvaliacoes))
 				r.Get("/avaliacoes/{trabalhoId}", s.h(s.docenteObterAvaliacao))
 				r.Put("/avaliacoes/{trabalhoId}", s.h(s.docenteSalvarAvaliacao))
+				r.Put("/avaliacoes/{trabalhoId}/parecer", s.h(s.docenteSalvarParecer))
+
+				r.Get("/premiacoes", s.h(s.docenteListarVotacoes))
+				r.Post("/premiacoes/{id}/votos", s.h(s.docenteVotar))
+				r.Delete("/premiacoes/{id}/votos/{trabalhoId}", s.h(s.docenteRemoverVoto))
 
 				r.Get("/atas", s.h(s.docenteListarATAs))
 			})

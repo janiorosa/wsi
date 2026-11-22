@@ -22,6 +22,7 @@ export interface Evento {
   id: string;
   nome: string;
   edicao: string;
+  numeroEdicao: number | null;
   descricao: string;
   dataApresentacao: string;
   horarioApresentacao: string;
@@ -89,6 +90,34 @@ export interface ResumoATA {
   geradaEm: string | null;
   signatarios: Signatario[];
   podeBaixar: boolean;
+  podeBaixarOriginal: boolean;
+  podeBaixarAssinada: boolean;
+  assinaturasColetadas: number;
+}
+
+export interface Parecer {
+  avaliador: string;
+  papel: 'orientador' | 'examinador';
+  parecer: string;
+  atualizadoEm: string | null;
+}
+
+export interface TrabalhoPremiado {
+  trabalhoId: string;
+  titulo: string;
+  aluno: string;
+  orientador: string;
+  votos: number;
+}
+
+export interface ResultadoPremiacao {
+  id: string;
+  nome: string;
+  descricao: string;
+  ordem: number;
+  votantes: number;
+  ranking: TrabalhoPremiado[];
+  vencedores: TrabalhoPremiado[];
 }
 
 export interface ResumoDeclaracao {

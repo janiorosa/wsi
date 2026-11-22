@@ -87,6 +87,11 @@ type ataResumo struct {
 	GeradaEm      *string            `json:"geradaEm"`
 	Signatarios   []signatarioResumo `json:"signatarios"`
 	PodeBaixar    bool               `json:"podeBaixar"`
+	// Docentes da banca: baixam a qualquer momento a ATA original (em branco) e a versão
+	// com as assinaturas já coletadas, mesmo que ainda faltem assinaturas.
+	PodeBaixarOriginal   bool `json:"podeBaixarOriginal"`
+	PodeBaixarAssinada   bool `json:"podeBaixarAssinada"`
+	AssinaturasColetadas int  `json:"assinaturasColetadas"`
 }
 
 // resumoATA descreve a ATA ativa do trabalho do ponto de vista do usuário informado.
@@ -127,6 +132,14 @@ func resumoATA(ctx context.Context, q banco.Executor, trabalhoID, usuarioID stri
 	a.SouSignatario = minhaOrdem > 0
 	a.MinhaVez = a.Estado == "aguardando_assinaturas" && minhaOrdem == a.PosicaoAtual
 	a.PodeBaixar = a.MinhaVez || (a.Estado == "finalizada" && a.SouSignatario)
+	for _, sr := range a.Signatarios {
+		if sr.Estado == "assinada" {
+			a.AssinaturasColetadas++
+		}
+	}
+	docenteSignatario := minhaOrdem >= 2
+	a.PodeBaixarOriginal = docenteSignatario && a.Estado != "gerando"
+	a.PodeBaixarAssinada = docenteSignatario && a.AssinaturasColetadas > 0
 	switch {
 	case a.Estado == "gerando" && a.ErroGeracao != "":
 		a.Situacao = "Falha na geração da ATA"

@@ -17,6 +17,7 @@ import (
 	"wsi/internal/latex"
 	"wsi/internal/notas"
 	"wsi/internal/pdf"
+	"wsi/internal/premiacoes"
 	"wsi/internal/regras"
 )
 
@@ -316,6 +317,19 @@ func (s *Servico) gerarPublicacao(ctx context.Context, t fila.Tarefa, publicacao
 		return "", nil, err
 	}
 	defer os.RemoveAll(dir)
+	// Anais: capa, folha de rosto e editorial (LaTeX) antes dos artigos.
+	paginasAbertura := 0
+	if tipoPublicacao == "anais" {
+		abertura := filepath.Join(dir, "abertura.pdf")
+		res, err := s.gerarAberturaAnais(ctx, t.EntidadeID, abertura)
+		if err != nil {
+			return "", nil, fmt.Errorf("páginas iniciais dos anais: %w", err)
+		}
+		paginasAbertura = res.Paginas
+		avisos = append(avisos, res.Avisos...)
+		entradas = append([]string{abertura}, entradas...)
+	}
+	progresso(75)
 	saida := filepath.Join(dir, "consolidado.pdf")
 	if err := pdf.Juntar(ctx, entradas, saida); err != nil {
 		return "", nil, err
@@ -327,7 +341,7 @@ func (s *Servico) gerarPublicacao(ctx context.Context, t fila.Tarefa, publicacao
 	if err != nil {
 		return "", nil, err
 	}
-	soma := 0
+	soma := paginasAbertura
 	for _, it := range itens {
 		if it.paginas != nil {
 			soma += *it.paginas
@@ -365,8 +379,88 @@ func (s *Servico) gerarPublicacao(ctx context.Context, t fila.Tarefa, publicacao
 		s.Armazenamento.Remover(salvo.Chave)
 		return "", nil, err
 	}
-	_ = tipoPublicacao
 	return publicacaoID, avisos, nil
+}
+
+// gerarAberturaAnais compila capa, folha de rosto e editorial do evento em destino.
+// Organizadores = apresentadores do evento; premiações = mais votados; maior nota = ATAs ativas.
+func (s *Servico) gerarAberturaAnais(ctx context.Context, eventoID, destino string) (latex.Resultado, error) {
+	var numero *int
+	var data time.Time
+	var campus string
+	if err := s.Pool.QueryRow(ctx, `SELECT numero_edicao, data_apresentacao, campus FROM eventos WHERE id = $1`, eventoID).
+		Scan(&numero, &data, &campus); err != nil {
+		return latex.Resultado{}, err
+	}
+	if numero == nil {
+		return latex.Resultado{}, fmt.Errorf("informe o número da edição do evento (Administração → Eventos → Editar) antes de gerar os anais")
+	}
+	cidade, err := CarregarCidade(ctx, s.Pool)
+	if err != nil {
+		return latex.Resultado{}, err
+	}
+	entrada := latex.EntradaAnaisAbertura{
+		NumeroEdicao: *numero,
+		Data:         time.Date(data.Year(), data.Month(), data.Day(), 0, 0, 0, 0, datas.Fuso),
+		Cidade:       cidade,
+		Campus:       campus,
+	}
+	rows, err := s.Pool.Query(ctx, `SELECT u.nome_completo FROM apresentadores_evento ap JOIN usuarios u ON u.id = ap.docente_id
+		WHERE ap.evento_id = $1 ORDER BY u.nome_completo`, eventoID)
+	if err != nil {
+		return latex.Resultado{}, err
+	}
+	for rows.Next() {
+		var nome string
+		if err := rows.Scan(&nome); err != nil {
+			rows.Close()
+			return latex.Resultado{}, err
+		}
+		entrada.Organizadores = append(entrada.Organizadores, nome)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return latex.Resultado{}, err
+	}
+	resultados, err := premiacoes.Resultados(ctx, s.Pool, eventoID)
+	if err != nil {
+		return latex.Resultado{}, err
+	}
+	for _, r := range resultados {
+		p := latex.PremioAnais{Nome: r.Nome}
+		for _, v := range r.Vencedores {
+			p.Vencedores = append(p.Vencedores, latex.TrabalhoDestaque{Titulo: v.Titulo, Aluno: v.Aluno, Orientador: v.Orientador})
+		}
+		entrada.Premiacoes = append(entrada.Premiacoes, p)
+	}
+	// Maior nota final: nota congelada na ATA ativa de cada trabalho do evento (empates: todos).
+	rows, err = s.Pool.Query(ctx, `WITH notas AS (
+			SELECT tr.titulo, u.nome_completo AS aluno, COALESCE(o.nome_completo, '') AS orientador, a.nota_final
+			FROM atas a JOIN trabalhos tr ON tr.id = a.trabalho_id JOIN usuarios u ON u.id = tr.aluno_id
+			LEFT JOIN usuarios o ON o.id = tr.orientador_id
+			WHERE tr.evento_id = $1 AND tr.estado <> 'cancelado' AND a.estado <> 'cancelada')
+		SELECT titulo, aluno, orientador FROM notas WHERE nota_final = (SELECT max(nota_final) FROM notas)
+		ORDER BY titulo`, eventoID)
+	if err != nil {
+		return latex.Resultado{}, err
+	}
+	for rows.Next() {
+		var t latex.TrabalhoDestaque
+		if err := rows.Scan(&t.Titulo, &t.Aluno, &t.Orientador); err != nil {
+			rows.Close()
+			return latex.Resultado{}, err
+		}
+		entrada.MaiorNota = append(entrada.MaiorNota, t)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return latex.Resultado{}, err
+	}
+	dados, err := entrada.Preparar()
+	if err != nil {
+		return latex.Resultado{}, err
+	}
+	return s.Compilador.Compilar(ctx, latex.DocumentoAnaisAbertura, dados, destino)
 }
 
 func (s *Servico) salvarItens(ctx context.Context, publicacaoID string, itens []itemPublicacao) error {

@@ -15,6 +15,7 @@ import { estadosEvento } from '../../utilitarios/rotulos';
 const esquema = z.object({
   nome: z.string().trim().min(1, 'Informe o nome do evento.'),
   edicao: z.string().trim(),
+  numeroEdicao: z.string().trim().refine((v) => v === '' || (/^\d{1,4}$/.test(v) && Number(v) >= 1 && Number(v) <= 3999), 'Informe um número (ex.: 6).'),
   descricao: z.string(),
   dataApresentacao: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Informe a data.'),
   horarioApresentacao: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Informe o horário (HH:MM).'),
@@ -28,7 +29,7 @@ const esquema = z.object({
 type Dados = z.infer<typeof esquema>;
 
 const vazio: Dados = {
-  nome: '', edicao: String(new Date().getFullYear()), descricao: '', dataApresentacao: '', horarioApresentacao: '19:00',
+  nome: '', edicao: String(new Date().getFullYear()), numeroEdicao: '', descricao: '', dataApresentacao: '', horarioApresentacao: '19:00',
   local: 'Salão de Convenções do Campus IFMG Ouro Branco', campus: 'Ouro Branco', estado: 'rascunho', prazoSubmissao: '', prazoApresentacao: '', informacoesPublicas: '',
 };
 
@@ -46,11 +47,12 @@ export function FormularioEvento() {
   useEffect(() => {
     if (data) {
       const e = data.evento;
-      form.reset({ ...e, prazoSubmissao: e.prazoSubmissao ?? '', prazoApresentacao: e.prazoApresentacao ?? '' });
+      form.reset({ ...e, numeroEdicao: e.numeroEdicao ? String(e.numeroEdicao) : '', prazoSubmissao: e.prazoSubmissao ?? '', prazoApresentacao: e.prazoApresentacao ?? '' });
     }
   }, [data, form]);
 
-  const salvar = form.handleSubmit(async (d) => {
+  const salvar = form.handleSubmit(async (dados) => {
+    const d = { ...dados, numeroEdicao: dados.numeroEdicao === '' ? null : Number(dados.numeroEdicao) };
     try {
       if (id) {
         await api.put(`/admin/eventos/${id}`, d);
@@ -78,6 +80,8 @@ export function FormularioEvento() {
             <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', md: '2fr 1fr' } }}>
               <TextField label="Nome do evento" required {...campo(form, 'nome')} />
               <TextField label="Edição / ano" {...campo(form, 'edicao')} />
+              <TextField label="Número da edição (ex.: 6 para o VI WSI)" inputMode="numeric" {...campo(form, 'numeroEdicao')}
+                helperText={form.formState.errors.numeroEdicao?.message ?? 'Usado na capa dos anais (v.6) e no título “ANAIS DO VI WORKSHOP...”. Obrigatório para gerar os anais.'} />
               <TextField label="Data da apresentação" type="date" required InputLabelProps={{ shrink: true }} {...campo(form, 'dataApresentacao')} />
               <TextField label="Horário da apresentação" type="time" required InputLabelProps={{ shrink: true }} {...campo(form, 'horarioApresentacao')} />
               <TextField label="Local" required {...campo(form, 'local')} helperText={form.formState.errors.local?.message ?? 'Na ATA, aparece após "na sala".'} />

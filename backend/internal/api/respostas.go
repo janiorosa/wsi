@@ -121,6 +121,8 @@ func mensagemUnicidade(restricao string) string {
 	switch restricao {
 	case "usuarios_email_unico":
 		return "Já existe uma conta com este e-mail."
+	case "premiacoes_evento_id_nome_key":
+		return "Já existe uma premiação com este nome neste evento."
 	case "perfis_aluno_matricula_unica":
 		return "Já existe um aluno com esta matrícula."
 	case "vinculos_orientacao_ativo_unico":

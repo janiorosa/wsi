@@ -27,6 +27,7 @@ import { FichaTrabalho } from './paginas/docente/FichaTrabalho';
 import { AtasParaAssinar } from './paginas/docente/AtasParaAssinar';
 import { EventosApresentador } from './paginas/docente/EventosApresentador';
 import { PainelApresentador } from './paginas/docente/PainelApresentador';
+import { Premiacoes } from './paginas/docente/Premiacoes';
 import { PainelAluno } from './paginas/aluno/PainelAluno';
 import { MeuTcc } from './paginas/aluno/MeuTcc';
 import { Orientador } from './paginas/aluno/Orientador';
@@ -69,6 +70,7 @@ export function App() {
         <Route path="orientandos" element={<MeusOrientandos />} />
         <Route path="trabalhos/:id" element={<FichaTrabalho />} />
         <Route path="atas" element={<AtasParaAssinar />} />
+        <Route path="premiacoes" element={<Premiacoes />} />
         <Route path="apresentador" element={<EventosApresentador />} />
         <Route path="apresentador/:id" element={<PainelApresentador />} />
       </Route>

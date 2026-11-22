@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../api/cliente';
-import type { ArquivoTrabalho, EventoTrabalho, ResumoATA, ResumoDeclaracao } from '../../api/tipos';
+import type { ArquivoTrabalho, EventoTrabalho, Parecer, ResumoATA, ResumoDeclaracao } from '../../api/tipos';
 
 export interface PainelAlunoDados {
   aluno: { nome: string; email: string; matricula: string; curso: string };
@@ -11,6 +11,7 @@ export interface PainelAlunoDados {
   } | null;
   ata: ResumoATA | null;
   declaracao: ResumoDeclaracao;
+  pareceres: Parecer[];
   proximosPassos: string[];
 }
 

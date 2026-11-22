@@ -20,6 +20,9 @@
 *.secret
 *.secrets
 secrets/
+dados/
+dados_test1/
+dados_test2/
 .secret/
 .secrets/
 credentials/

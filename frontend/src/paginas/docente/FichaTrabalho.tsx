@@ -11,7 +11,7 @@ import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import DescriptionIcon from '@mui/icons-material/Description';
 import { api, mensagemDeErro, urlApi } from '../../api/cliente';
-import type { ArquivoTrabalho, DocenteResumo, Evento, EventoTrabalho, ResumoATA, ResumoDeclaracao, SessaoEvento } from '../../api/tipos';
+import type { ArquivoTrabalho, DocenteResumo, Evento, EventoTrabalho, Parecer, ResumoATA, ResumoDeclaracao, SessaoEvento } from '../../api/tipos';
 import { Carregando, ErroCarregamento, EstadoChip, Secao, Titulo, Vazio } from '../../componentes/Comuns';
 import { PainelAssinaturaATA } from '../../componentes/PainelAssinaturaATA';
 import { AcompanharTarefa } from '../../componentes/AcompanharTarefa';
@@ -35,6 +35,7 @@ interface Ficha {
   aprovadoPrevio?: boolean;
   podeGerarATA?: boolean;
   declaracao?: ResumoDeclaracao;
+  pareceres?: Parecer[];
   historico?: { estadoAnterior: string; estadoNovo: string; ator: string | null; observacao: string; data: string }[];
 }
 
@@ -194,13 +195,35 @@ export function FichaTrabalho() {
         </Secao>
       )}
 
+      {data.pareceres && (
+        <Secao titulo="Pareceres da banca" dica="Textos informativos dos avaliadores para o aluno corrigir o artigo. O aluno também vê estes pareceres.">
+          {data.pareceres.length === 0 ? <Vazio>Nenhum parecer registrado ainda.</Vazio> : (
+            <Stack spacing={2}>
+              {data.pareceres.map((p, i) => (
+                <Box key={i}>
+                  <Typography fontWeight={700}>{p.avaliador} <Typography component="span" variant="body2" color="text.secondary">· {p.papel === 'orientador' ? 'Orientador' : 'Examinador'}{p.atualizadoEm ? ` · ${p.atualizadoEm}` : ''}</Typography></Typography>
+                  <Typography sx={{ whiteSpace: 'pre-line' }}>{p.parecer}</Typography>
+                </Box>
+              ))}
+            </Stack>
+          )}
+        </Secao>
+      )}
+
       {orientador && data.declaracao && (
         <Secao titulo="Declaração anti-plágio do orientando">
-          {data.declaracao.assinadaId ? (
-            <Button variant="outlined" startIcon={<PictureAsPdfIcon />} href={urlApi(`/declaracoes-assinadas/${data.declaracao.assinadaId}`)}>
-              Baixar declaração assinada (enviada em {data.declaracao.assinadaEm})
-            </Button>
-          ) : <Alert severity="warning">O aluno ainda não enviou a declaração assinada.</Alert>}
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+            {data.declaracao.assinadaId ? (
+              <Button variant="contained" startIcon={<PictureAsPdfIcon />} href={urlApi(`/declaracoes-assinadas/${data.declaracao.assinadaId}`)}>
+                Baixar declaração assinada (enviada em {data.declaracao.assinadaEm})
+              </Button>
+            ) : <Alert severity="warning">O aluno ainda não enviou a declaração assinada.</Alert>}
+            {data.declaracao.geradaId && (
+              <Button variant="outlined" startIcon={<PictureAsPdfIcon />} href={urlApi(`/documentos/${data.declaracao.geradaId}`)}>
+                Baixar declaração gerada, sem assinatura ({data.declaracao.geradaEm})
+              </Button>
+            )}
+          </Stack>
         </Secao>
       )}
 

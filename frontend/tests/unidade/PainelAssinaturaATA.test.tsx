@@ -7,6 +7,7 @@ import type { ResumoATA } from '../../src/api/tipos';
 const base: ResumoATA = {
   id: 'ata-1', versao: 1, estado: 'aguardando_assinaturas', posicaoAtual: 1, minhaVez: true, souSignatario: true,
   situacao: 'Aguardando sua assinatura', erroGeracao: '', geradaEm: '14/07/2026 20:00', podeBaixar: true,
+  podeBaixarOriginal: false, podeBaixarAssinada: false, assinaturasColetadas: 0,
   signatarios: [
     { ordem: 1, rotulo: 'Aluno', nome: 'Aluna Teste', estado: 'pendente', enviadoEm: null, souEu: true },
     { ordem: 2, rotulo: 'Professor Orientador', nome: 'Orientador Teste', estado: 'pendente', enviadoEm: null, souEu: false },
@@ -28,6 +29,12 @@ describe('PainelAssinaturaATA', () => {
   it('fora da vez, não permite baixar nem enviar', () => {
     renderizar({ ...base, minhaVez: false, podeBaixar: false, posicaoAtual: 2, situacao: 'Aguardando assinaturas dos docentes' });
     expect(screen.queryByText('Baixar ATA para assinar')).not.toBeInTheDocument();
+    expect(screen.queryByText('Enviar ATA assinada')).not.toBeInTheDocument();
+  });
+  it('docente da banca baixa a ATA original e a parcialmente assinada a qualquer momento', () => {
+    renderizar({ ...base, minhaVez: false, podeBaixar: false, posicaoAtual: 3, podeBaixarOriginal: true, podeBaixarAssinada: true, assinaturasColetadas: 2, situacao: 'Aguardando assinaturas' });
+    expect(screen.getByText('ATA original (em branco)')).toBeInTheDocument();
+    expect(screen.getByText('ATA com as assinaturas coletadas (2 de 3)')).toBeInTheDocument();
     expect(screen.queryByText('Enviar ATA assinada')).not.toBeInTheDocument();
   });
   it('finalizada: oferece somente a ATA final', () => {

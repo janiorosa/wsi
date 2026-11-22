@@ -20,6 +20,7 @@ func TestEscaparCaracteresEspeciais(t *testing.T) {
 		"  espaços   múltiplos ": `espaços múltiplos`,
 		`Conclusão, ç ã é`: `Conclusão, ç ã é`,
 		`[opcional]`:    `{[}opcional{]}`,
+		`"algoritmos"`:  `\textquotedbl{}algoritmos\textquotedbl{}`,
 	}
 	for entrada, esperado := range casos {
 		if obtido := Escapar(entrada); obtido != esperado {

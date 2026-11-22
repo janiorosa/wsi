@@ -11,15 +11,16 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import { api, mensagemDeErro, urlApi } from '../../api/cliente';
-import type { Evento, Publicacao } from '../../api/tipos';
+import type { Evento, Publicacao, ResultadoPremiacao } from '../../api/tipos';
 import { Carregando, ErroCarregamento, EstadoChip, Secao, Titulo, Vazio } from '../../componentes/Comuns';
 import { AcompanharTarefa } from '../../componentes/AcompanharTarefa';
 import { useNotificar } from '../../componentes/Notificacoes';
 import { useConfirmar } from '../../componentes/Confirmacao';
+import { ResultadoPremiacoes } from '../../componentes/ResultadoPremiacoes';
 import { estadosPublicacao, formatarData, rotulo } from '../../utilitarios/rotulos';
 
 interface TrabalhoApresentador { id: string; titulo: string; aluno: string; ordem: number | null; sessao: string | null; artigoId: string | null; artigoVersao: number | null; apresentacaoId: string | null; apresentacaoVersao: number | null }
-interface PainelDados { evento: Evento; trabalhos: TrabalhoApresentador[]; publicacoes: Publicacao[]; tarefasAtivas: { id: string; tipo: string }[]; podePublicar: boolean }
+interface PainelDados { evento: Evento; trabalhos: TrabalhoApresentador[]; publicacoes: Publicacao[]; tarefasAtivas: { id: string; tipo: string }[]; podePublicar: boolean; premiacoes: ResultadoPremiacao[] }
 
 export function PainelApresentador() {
   const { id } = useParams();
@@ -69,9 +70,12 @@ export function PainelApresentador() {
                 <Typography variant="h3" component="h2">{tipo === 'anais' ? 'Anais do evento (artigos)' : 'PDF com todas as apresentações'}</Typography>
               </Stack>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                {tipo === 'anais' ? `Junta os artigos na ordem da programação. ${semArtigo} trabalho(s) sem artigo.` : `Junta as apresentações na ordem da programação. ${semApresentacao} trabalho(s) sem apresentação.`}
+                {tipo === 'anais' ? `Capa, folha de rosto e editorial (com os premiados e a maior nota) seguidos dos artigos, na ordem da programação. ${semArtigo} trabalho(s) sem artigo. Gere após o fim das avaliações e da votação.` : `Junta as apresentações na ordem da programação. ${semApresentacao} trabalho(s) sem apresentação.`}
                 {' '}Nunca inclui ATAs, notas ou declarações.
               </Typography>
+              {tipo === 'anais' && !data.evento.numeroEdicao && (
+                <Alert severity="warning" sx={{ mb: 2 }}>O número da edição do evento não foi informado. Peça à administração para preenchê-lo antes de gerar os anais.</Alert>
+              )}
               {tarefas[tipo] ? (
                 <AcompanharTarefa tarefaId={tarefas[tipo]} aoConcluir={() => { setTarefas((t) => { const n = { ...t }; delete n[tipo]; return n; }); void refetch(); }} />
               ) : (
@@ -83,6 +87,10 @@ export function PainelApresentador() {
           </Card>
         ))}
       </Box>
+
+      <Secao titulo="Premiações (votos dos docentes)" dica="O trabalho mais votado de cada premiação (ou os empatados) é citado no editorial dos anais.">
+        <ResultadoPremiacoes premiacoes={data.premiacoes} />
+      </Secao>
 
       <Secao titulo="Documentos gerados" dica="Confira o PDF e o relatório de inclusão antes de publicar. A publicação substitui a versão publicada anterior.">
         {!data.podePublicar && <Alert severity="info" sx={{ mb: 2 }}>Você pode gerar e conferir, mas não recebeu permissão para publicar.</Alert>}

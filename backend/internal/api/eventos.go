@@ -16,6 +16,7 @@ import (
 	"golang.org/x/text/unicode/norm"
 
 	"wsi/internal/banco"
+	"wsi/internal/premiacoes"
 	"wsi/internal/regras"
 )
 
@@ -32,6 +33,7 @@ type evento struct {
 	ID                  string  `json:"id"`
 	Nome                string  `json:"nome"`
 	Edicao              string  `json:"edicao"`
+	NumeroEdicao        *int    `json:"numeroEdicao"`
 	Descricao           string  `json:"descricao"`
 	DataApresentacao    string  `json:"dataApresentacao"`
 	HorarioApresentacao string  `json:"horarioApresentacao"`
@@ -47,7 +49,7 @@ type evento struct {
 	TotalTrabalhos      int     `json:"totalTrabalhos"`
 }
 
-const selecaoEvento = `SELECT e.id::text, e.nome, e.edicao, e.descricao, to_char(e.data_apresentacao, 'YYYY-MM-DD'),
+const selecaoEvento = `SELECT e.id::text, e.nome, e.edicao, e.numero_edicao, e.descricao, to_char(e.data_apresentacao, 'YYYY-MM-DD'),
 	to_char(e.horario_apresentacao, 'HH24:MI'), e.local, e.campus, e.estado,
 	to_char(e.prazo_submissao, 'YYYY-MM-DD'), to_char(e.prazo_apresentacao, 'YYYY-MM-DD'), e.informacoes_publicas, e.slug,
 	e.capa_chave IS NOT NULL,
@@ -57,7 +59,7 @@ const selecaoEvento = `SELECT e.id::text, e.nome, e.edicao, e.descricao, to_char
 
 func escanearEvento(row interface{ Scan(...any) error }) (evento, error) {
 	var e evento
-	err := row.Scan(&e.ID, &e.Nome, &e.Edicao, &e.Descricao, &e.DataApresentacao, &e.HorarioApresentacao, &e.Local, &e.Campus, &e.Estado,
+	err := row.Scan(&e.ID, &e.Nome, &e.Edicao, &e.NumeroEdicao, &e.Descricao, &e.DataApresentacao, &e.HorarioApresentacao, &e.Local, &e.Campus, &e.Estado,
 		&e.PrazoSubmissao, &e.PrazoApresentacao, &e.InformacoesPublicas, &e.Slug, &e.TemCapa, &e.Futuro, &e.TotalTrabalhos)
 	return e, err
 }
@@ -82,6 +84,7 @@ func listarEventos(ctx context.Context, q banco.Executor, filtro string, args ..
 type entradaEvento struct {
 	Nome                string `json:"nome"`
 	Edicao              string `json:"edicao"`
+	NumeroEdicao        *int   `json:"numeroEdicao"`
 	Descricao           string `json:"descricao"`
 	DataApresentacao    string `json:"dataApresentacao"`
 	HorarioApresentacao string `json:"horarioApresentacao"`
@@ -131,6 +134,9 @@ func (e *entradaEvento) validar() error {
 	}
 	if _, ok := estadosEvento[e.Estado]; !ok {
 		campos["estado"] = "Estado inválido."
+	}
+	if e.NumeroEdicao != nil && (*e.NumeroEdicao < 1 || *e.NumeroEdicao > 3999) {
+		campos["numeroEdicao"] = "Informe um número de edição entre 1 e 3999."
 	}
 	if e.PrazoSubmissao != "" && !dataValida(e.PrazoSubmissao) {
 		campos["prazoSubmissao"] = "Data inválida."
@@ -210,11 +216,15 @@ func (s *Servidor) adminCriarEvento(w http.ResponseWriter, r *http.Request) erro
 	}
 	var id string
 	err = tx.QueryRow(r.Context(), `INSERT INTO eventos (nome, edicao, descricao, data_apresentacao, horario_apresentacao, local, campus, estado,
-		prazo_submissao, prazo_apresentacao, informacoes_publicas, slug, criado_por)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING id::text`,
+		prazo_submissao, prazo_apresentacao, informacoes_publicas, slug, criado_por, numero_edicao)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING id::text`,
 		e.Nome, e.Edicao, strings.TrimSpace(e.Descricao), e.DataApresentacao, e.HorarioApresentacao, e.Local, e.Campus, e.Estado,
-		textoOuNil(e.PrazoSubmissao), textoOuNil(e.PrazoApresentacao), strings.TrimSpace(e.InformacoesPublicas), slug, ses.UsuarioID).Scan(&id)
+		textoOuNil(e.PrazoSubmissao), textoOuNil(e.PrazoApresentacao), strings.TrimSpace(e.InformacoesPublicas), slug, ses.UsuarioID, e.NumeroEdicao).Scan(&id)
 	if err != nil {
+		return err
+	}
+	// Todo evento já nasce com a premiação padrão.
+	if err := premiacoes.CriarPadrao(r.Context(), tx, id, &ses.UsuarioID); err != nil {
 		return err
 	}
 	if err := s.auditar(r.Context(), tx, r, "criar_evento", "evento", id, map[string]any{"nome": e.Nome}); err != nil {
@@ -249,9 +259,10 @@ func (s *Servidor) adminAtualizarEvento(w http.ResponseWriter, r *http.Request) 
 		return err
 	}
 	if _, err := tx.Exec(r.Context(), `UPDATE eventos SET nome = $2, edicao = $3, descricao = $4, data_apresentacao = $5, horario_apresentacao = $6,
-		local = $7, campus = $8, estado = $9, prazo_submissao = $10, prazo_apresentacao = $11, informacoes_publicas = $12, atualizado_em = now()
+		local = $7, campus = $8, estado = $9, prazo_submissao = $10, prazo_apresentacao = $11, informacoes_publicas = $12, numero_edicao = $13,
+		atualizado_em = now()
 		WHERE id = $1`, id, e.Nome, e.Edicao, strings.TrimSpace(e.Descricao), e.DataApresentacao, e.HorarioApresentacao, e.Local, e.Campus, e.Estado,
-		textoOuNil(e.PrazoSubmissao), textoOuNil(e.PrazoApresentacao), strings.TrimSpace(e.InformacoesPublicas)); err != nil {
+		textoOuNil(e.PrazoSubmissao), textoOuNil(e.PrazoApresentacao), strings.TrimSpace(e.InformacoesPublicas), e.NumeroEdicao); err != nil {
 		return err
 	}
 	if err := s.auditar(r.Context(), tx, r, "atualizar_evento", "evento", id, map[string]any{
@@ -369,8 +380,12 @@ func (s *Servidor) adminObterEvento(w http.ResponseWriter, r *http.Request) erro
 	if err != nil {
 		return err
 	}
+	resultados, err := premiacoes.Resultados(r.Context(), s.pool, id)
+	if err != nil {
+		return err
+	}
 	return responderOK(w, map[string]any{"evento": e, "sessoes": sessoes, "trabalhos": trabalhos,
-		"apresentadores": apresentadores, "publicacoes": publicacoes})
+		"apresentadores": apresentadores, "publicacoes": publicacoes, "premiacoes": resultados})
 }
 
 func (s *Servidor) adminEnviarCapa(w http.ResponseWriter, r *http.Request) error {

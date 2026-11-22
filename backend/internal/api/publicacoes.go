@@ -10,6 +10,7 @@ import (
 
 	"wsi/internal/banco"
 	"wsi/internal/fila"
+	"wsi/internal/premiacoes"
 )
 
 var rotuloPublicacao = map[string]string{"anais": "Anais", "apresentacoes": "Apresentacoes"}
@@ -179,8 +180,13 @@ func (s *Servidor) apresentadorEvento(w http.ResponseWriter, r *http.Request) er
 	if tarefasAtivas == nil {
 		tarefasAtivas = []map[string]string{}
 	}
+	// Resultado das premiações (votos dos docentes): visível ao apresentador e ao ADMIN.
+	resultados, err := premiacoes.Resultados(r.Context(), s.pool, id)
+	if err != nil {
+		return err
+	}
 	return responderOK(w, map[string]any{"evento": e, "trabalhos": trabalhos, "publicacoes": publicacoes,
-		"tarefasAtivas": tarefasAtivas, "podePublicar": podePublicar})
+		"tarefasAtivas": tarefasAtivas, "podePublicar": podePublicar, "premiacoes": resultados})
 }
 
 // POST /apresentador/eventos/{id}/publicacoes {tipo: anais|apresentacoes}

@@ -360,12 +360,16 @@ paths:
   /atas/{id}/documento:
     get:
       tags: [atas]
-      summary: "Baixa a ATA: signatário da vez, ou participantes após finalizada"
+      summary: "Baixa a ATA: signatário da vez, ou participantes após finalizada. Docentes da banca: ?versao=original (em branco) ou ?versao=assinada (assinaturas já coletadas) a qualquer momento"
       parameters:
         - name: id
           in: path
           required: true
           schema: {type: string}
+        - name: versao
+          in: query
+          required: false
+          schema: {type: string, enum: [original, assinada]}
       security:
         - sessao: []
       responses:
@@ -796,6 +800,62 @@ paths:
     put:
       tags: [admin]
       summary: "Define a ordem dos trabalhos"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      security:
+        - sessao: []
+          csrf: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /admin/eventos/{id}/premiacoes:
+    post:
+      tags: [admin]
+      summary: "Cadastra premiação no evento {nome, descricao} (todo evento já nasce com o Prêmio Destaque)"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      security:
+        - sessao: []
+          csrf: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /admin/premiacoes/{id}:
+    put:
+      tags: [admin]
+      summary: "Renomeia/descreve premiação"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      security:
+        - sessao: []
+          csrf: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+    delete:
+      tags: [admin]
+      summary: "Remove premiação e seus votos"
       parameters:
         - name: id
           in: path
@@ -1264,6 +1324,80 @@ paths:
       tags: [docente]
       summary: "Salva rascunho ou finaliza avaliação"
       parameters:
+        - name: trabalhoId
+          in: path
+          required: true
+          schema: {type: string}
+      security:
+        - sessao: []
+          csrf: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /docente/avaliacoes/{trabalhoId}/parecer:
+    put:
+      tags: [docente]
+      summary: "Salva o parecer descritivo (informativo para o aluno; independente da nota; editável até a ATA)"
+      parameters:
+        - name: trabalhoId
+          in: path
+          required: true
+          schema: {type: string}
+      security:
+        - sessao: []
+          csrf: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /docente/premiacoes:
+    get:
+      tags: [docente]
+      summary: "Eventos com votação aberta, trabalhos e meus votos"
+      security:
+        - sessao: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /docente/premiacoes/{id}/votos:
+    post:
+      tags: [docente]
+      summary: "Vota em um trabalho {trabalhoId} (até 2 por premiação)"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
+      security:
+        - sessao: []
+          csrf: []
+      responses:
+        '200': {description: Sucesso}
+        default:
+          description: Erro
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Erro'}
+  /docente/premiacoes/{id}/votos/{trabalhoId}:
+    delete:
+      tags: [docente]
+      summary: "Retira o voto"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: {type: string}
         - name: trabalhoId
           in: path
           required: true

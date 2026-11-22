@@ -18,7 +18,8 @@ ENV TZ=America/Sao_Paulo
 RUN mkdir /tmp/verificacao && cd /tmp/verificacao \
  && printf '%s\n' '\documentclass[a4paper,12pt]{article}' '\usepackage{fontspec}' '\usepackage[brazil]{babel}' \
       '\usepackage{graphicx}' '\usepackage[normalem]{ulem}' '\usepackage{framed}' '\usepackage{fancyhdr}' \
-      '\usepackage[a4paper]{geometry}' '\begin{document}' 'Ação – ATA nº 1 \textbf{\uline{Conclusão “TCC”}}' \
+      '\usepackage[a4paper]{geometry}' '\usepackage{xcolor}' '\begin{document}' \
+      '\pagecolor{blue}Ação – ATA nº 1 \textbf{\uline{Conclusão “TCC”}} \textquotedbl{}' '\nopagecolor' \
       '\begin{framed}Moldura\end{framed}' '\end{document}' > t.tex \
  && xelatex -no-shell-escape -interaction=nonstopmode -halt-on-error t.tex > /dev/null \
  && ! grep -q 'Missing character' t.log \

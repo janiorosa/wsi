@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5"
@@ -204,10 +205,17 @@ func (s *Servidor) docenteObterAvaliacao(w http.ResponseWriter, r *http.Request)
 		return err
 	}
 	estado, notaCalculada := "pendente", (*string)(nil)
-	var avaliacaoID string
-	err = s.pool.QueryRow(ctx, `SELECT id::text, estado, nota_calculada::text FROM avaliacoes WHERE trabalho_id = $1 AND avaliador_id = $2`,
-		trabalhoID, ses.UsuarioID).Scan(&avaliacaoID, &estado, &notaCalculada)
+	var avaliacaoID, parecer string
+	var parecerEm *string
+	err = s.pool.QueryRow(ctx, `SELECT id::text, estado, nota_calculada::text, parecer,
+		to_char(parecer_atualizado_em AT TIME ZONE 'America/Sao_Paulo', 'DD/MM/YYYY HH24:MI')
+		FROM avaliacoes WHERE trabalho_id = $1 AND avaliador_id = $2`,
+		trabalhoID, ses.UsuarioID).Scan(&avaliacaoID, &estado, &notaCalculada, &parecer, &parecerEm)
 	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return err
+	}
+	var possuiATA bool
+	if err := s.pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM atas WHERE trabalho_id = $1 AND estado <> 'cancelada')`, trabalhoID).Scan(&possuiATA); err != nil {
 		return err
 	}
 	notasExistentes := map[string]criterioComNota{}
@@ -250,8 +258,12 @@ func (s *Servidor) docenteObterAvaliacao(w http.ResponseWriter, r *http.Request)
 		"criterios":     itens,
 		"estado":        estado,
 		"notaCalculada": notaCalculada,
-		"podeEditar":    estado != "finalizada",
+		"podeEditar":    estado != "finalizada" && !possuiATA,
 		"regra":         "Média aritmética simples das notas dos critérios (0 a 100), sem pesos, arredondada a 2 casas.",
+		// Parecer descritivo: informativo para o aluno; independente da nota e editável até a geração da ATA.
+		"parecer":             parecer,
+		"parecerAtualizadoEm": parecerEm,
+		"podeEditarParecer":   !possuiATA,
 	})
 }
 
@@ -428,6 +440,54 @@ func (s *Servidor) docenteSalvarAvaliacao(w http.ResponseWriter, r *http.Request
 	}
 	s.fila.Notificar()
 	return responderOK(w, resposta)
+}
+
+// PUT /docente/avaliacoes/{trabalhoId}/parecer {parecer}
+// O parecer é apenas informativo (subsídio para o aluno corrigir o artigo): não entra na nota,
+// pode ser salvo antes dela e continua editável após o envio da nota, até a geração da ATA.
+func (s *Servidor) docenteSalvarParecer(w http.ResponseWriter, r *http.Request) error {
+	ses := sessaoDe(r)
+	ctx := r.Context()
+	trabalhoID := chi.URLParam(r, "trabalhoId")
+	var req struct {
+		Parecer string `json:"parecer"`
+	}
+	if err := lerJSON(r, &req); err != nil {
+		return err
+	}
+	req.Parecer = strings.TrimSpace(req.Parecer)
+	if utf8.RuneCountInString(req.Parecer) > 20000 {
+		return erroCampo("parecer", "O parecer deve ter no máximo 20.000 caracteres.")
+	}
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(context.Background())
+	if _, err := tx.Exec(ctx, `SELECT id FROM trabalhos WHERE id = $1 FOR UPDATE`, trabalhoID); err != nil {
+		return err
+	}
+	if err := exigirMembroBanca(ctx, tx, trabalhoID, ses.UsuarioID); err != nil {
+		return err
+	}
+	var possuiATA bool
+	if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM atas WHERE trabalho_id = $1 AND estado <> 'cancelada')`, trabalhoID).Scan(&possuiATA); err != nil {
+		return err
+	}
+	if possuiATA {
+		return erroConflito("A ATA deste trabalho já foi gerada; o parecer não pode mais ser alterado.")
+	}
+	var atualizadoEm string
+	if err := tx.QueryRow(ctx, `INSERT INTO avaliacoes (trabalho_id, avaliador_id, parecer, parecer_atualizado_em) VALUES ($1, $2, $3, now())
+		ON CONFLICT (trabalho_id, avaliador_id) DO UPDATE SET parecer = $3, parecer_atualizado_em = now(), atualizado_em = now()
+		RETURNING to_char(parecer_atualizado_em AT TIME ZONE 'America/Sao_Paulo', 'DD/MM/YYYY HH24:MI')`,
+		trabalhoID, ses.UsuarioID, req.Parecer).Scan(&atualizadoEm); err != nil {
+		return err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return err
+	}
+	return responderOK(w, map[string]string{"parecerAtualizadoEm": atualizadoEm})
 }
 
 // POST /docente/trabalhos/{id}/avaliacoes/{avaliadorId}/reabrir {motivo} — procedimento autorizado (orientador) e auditado.

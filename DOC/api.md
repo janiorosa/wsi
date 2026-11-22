@@ -46,10 +46,10 @@ As gerações devolvem `202 {tarefaId}`; o andamento é consultado em `GET /tare
 | saúde | `GET /saude` |
 | autenticação/conta | `/auth/*`, `/conta` |
 | público | `/publico/eventos`, `/publico/eventos/{slug}`, `/publico/publicacoes/{id}/arquivo` |
-| admin | `/admin/painel`, `/admin/usuarios`, `/admin/docentes/{id}/aprovar|rejeitar`, `/admin/vinculos`, `/admin/eventos`, `/admin/sessoes`, `/admin/trabalhos`, `/admin/criterios`, `/admin/configuracoes`, `/admin/tarefas`, `/admin/auditoria` |
-| docente | `/docente/painel`, `/docente/orientandos`, `/docente/trabalhos/{id}` (evento, banca, critérios, ATA), `/docente/avaliacoes`, `/docente/atas` |
+| admin | `/admin/painel`, `/admin/usuarios`, `/admin/docentes/{id}/aprovar|rejeitar`, `/admin/vinculos`, `/admin/eventos`, `/admin/eventos/{id}/premiacoes`, `/admin/premiacoes/{id}`, `/admin/sessoes`, `/admin/trabalhos`, `/admin/criterios`, `/admin/configuracoes`, `/admin/tarefas`, `/admin/auditoria` |
+| docente | `/docente/painel`, `/docente/orientandos`, `/docente/trabalhos/{id}` (evento, banca, critérios, ATA), `/docente/avaliacoes`, `/docente/avaliacoes/{trabalhoId}/parecer`, `/docente/premiacoes` (votos), `/docente/atas` |
 | apresentador | `/apresentador/eventos`, `/apresentador/eventos/{id}/publicacoes`, `/apresentador/publicacoes/{id}/publicar` |
 | aluno | `/aluno/painel`, `/aluno/trabalho`, `/aluno/trabalho/arquivos/{tipo}`, `/aluno/orientador`, `/aluno/declaracao/*` |
-| arquivos | `/arquivos/{id}`, `/documentos/{id}`, `/declaracoes-assinadas/{id}`, `/atas/{id}`, `/atas/{id}/documento`, `/atas/{id}/assinatura` |
+| arquivos | `/arquivos/{id}`, `/documentos/{id}`, `/declaracoes-assinadas/{id}`, `/atas/{id}`, `/atas/{id}/documento` (`?versao=original|assinada` para docentes da banca), `/atas/{id}/assinatura` |
 
 Caminhos físicos nunca são devolvidos: os downloads usam identificadores e passam pela autorização.

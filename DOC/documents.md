@@ -10,6 +10,8 @@ Ficam em `backend/templates/documentos/` (detalhes das variáveis em `backend/te
 | Declaração anti-plágio | `declaracao-antiplagio/declaracao.tex.tmpl` | `declaracao-v2` | `ata-e-declaracao/declaração-guilherme.tex` e PDF |
 | Preâmbulo e cabeçalho comuns | `comum/preambulo.tex.tmpl` | — | Seção 14.3 da especificação |
 | Brasão da República | `comum/brasao.png` | — | `ata-e-declaracao/image.png` |
+| Capa, folha de rosto e editorial dos anais | `anais/abertura.tex.tmpl` | `anais-abertura-v1` | Anais do V WSI (2025), 3 primeiras páginas |
+| Logotipos dos anais | `anais/logo-wsi.png`, `anais/logo-ifmg.png` | — | Logotipos enviados pelo responsável (fundo xadrez removido) |
 
 O texto institucional e jurídico dos modelos foi copiado **literalmente**.
 
@@ -53,7 +55,7 @@ Todo texto vindo de usuários (nomes, título, local, cabeçalho) passa por `lat
 
 ## Consolidação (anais e apresentações)
 
-`qpdf --empty --pages a.pdf b.pdf … -- saida.pdf` preserva tamanho, orientação e qualidade de cada página. Antes da junção, cada arquivo é validado. Depois, o total de páginas é comparado com a soma das partes. O relatório (`itens_publicacao`) lista cada trabalho como incluído (com a versão), ausente ou inválido.
+Nos anais, as páginas iniciais (capa, folha de rosto e editorial, compiladas em LaTeX com os dados do evento) vêm antes dos artigos. `qpdf --empty --pages a.pdf b.pdf … -- saida.pdf` preserva tamanho, orientação e qualidade de cada página. Antes da junção, cada arquivo é validado. Depois, o total de páginas é comparado com a soma das partes. O relatório (`itens_publicacao`) lista cada trabalho como incluído (com a versão), ausente ou inválido.
 
 ## Alterar um template
 

@@ -10,9 +10,10 @@ export function MolduraPublica({ children, largura = 'lg' }: { children: ReactNo
     <Box sx={{ minHeight: '100vh' }}>
       <AppBar position="static" color="inherit" elevation={0} sx={{ bgcolor: 'rgba(255,255,255,0.85)', borderBottom: `1px solid ${cores.borda}` }}>
         <Toolbar>
-          <Typography component={RouterLink} to="/" variant="h6" sx={{ color: 'primary.dark', fontWeight: 800, textDecoration: 'none', flexGrow: 1 }}>
-            WSI · Eventos de TCC — IFMG Ouro Branco
-          </Typography>
+          <Box component={RouterLink} to="/" sx={{ display: 'flex', alignItems: 'center', gap: 2, textDecoration: 'none', flexGrow: 1, minWidth: 0 }}>
+            <Box component="img" src="/logo-wsi.png" alt="WSI — Workshop de Sistemas de Informação" sx={{ height: { xs: 36, sm: 48 }, width: 'auto', display: 'block' }} />
+            <Typography variant="body2" sx={{ color: 'text.secondary', display: { xs: 'none', md: 'block' } }}>Eventos de TCC — IFMG Campus Ouro Branco</Typography>
+          </Box>
           {sessao.autenticado ? (
             <Button variant="contained" component={RouterLink} to={destinoInicial(sessao)}>Meu painel</Button>
           ) : (

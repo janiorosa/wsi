@@ -228,13 +228,17 @@ func (s *Servidor) baixarArquivoTrabalho(w http.ResponseWriter, r *http.Request)
 	return s.enviarArquivo(w, r, chave, nomeDownload(rotulo, aluno, fmt.Sprintf("v%d", versao)), "application/pdf", r.URL.Query().Get("visualizar") == "1")
 }
 
-// GET /documentos/{id} — declaração gerada: somente o próprio aluno.
+// GET /documentos/{id} — declaração gerada: o próprio aluno ou o DOCENTE orientador ativo.
 func (s *Servidor) baixarDocumentoGerado(w http.ResponseWriter, r *http.Request) error {
 	ses := sessaoDe(r)
 	var entidade, chave, nome string
-	err := s.pool.QueryRow(r.Context(), `SELECT d.entidade_id::text, d.chave_armazenamento, u.nome_completo FROM documentos_gerados d
-		JOIN usuarios u ON u.id = d.entidade_id WHERE d.id = $1 AND d.tipo = 'declaracao_antiplagio'`, chi.URLParam(r, "id")).Scan(&entidade, &chave, &nome)
-	if err != nil || ses.Contexto != PerfilAluno || entidade != ses.UsuarioID {
+	var orientadorAtivo bool
+	err := s.pool.QueryRow(r.Context(), `SELECT d.entidade_id::text, d.chave_armazenamento, u.nome_completo,
+		EXISTS(SELECT 1 FROM vinculos_orientacao v WHERE v.aluno_id = d.entidade_id AND v.docente_id::text = $2 AND v.situacao = 'ativo')
+		FROM documentos_gerados d JOIN usuarios u ON u.id = d.entidade_id WHERE d.id = $1 AND d.tipo = 'declaracao_antiplagio'`,
+		chi.URLParam(r, "id"), ses.UsuarioID).Scan(&entidade, &chave, &nome, &orientadorAtivo)
+	permitido := (ses.Contexto == PerfilAluno && entidade == ses.UsuarioID) || (ses.Contexto == PerfilDocente && orientadorAtivo)
+	if err != nil || !permitido {
 		return erroNaoEncontrado("Documento não encontrado.")
 	}
 	return s.enviarArquivo(w, r, chave, nomeDownload("Declaracao_Anti_Plagio", nome), "application/pdf", false)

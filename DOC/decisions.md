@@ -27,6 +27,12 @@
 | 21 | Aprovação com nota final ≥ 60,00; ATA com “Aprovação” ou “Reprovação” | Definição do responsável |
 | 22 | Critério geral fixo “Nota” (coluna `fixo`, criado pelo seed, protegido por gatilho e pela API) | Definição do responsável: deve existir sempre e ser avaliado por todos os docentes |
 | 23 | Acesso pela LAN em `http://IP:PORTA/` (raiz) com cookie não `Secure` | Implantação em servidor da rede local sem HTTPS |
+| 25 | Notas e parecer salvos automaticamente; avaliações pendentes direto no painel do docente | Definição do responsável. A nota fica em rascunho e pode mudar até “Enviar avaliação”; depois, só o orientador reabre (como antes) |
+| 26 | Parecer descritivo separado da nota (`avaliacoes.parecer`), visível ao aluno e editável até a geração da ATA | Serve de subsídio para o aluno corrigir o artigo; não entra no cálculo |
+| 27 | Premiações por evento com votação dos docentes (até 2 votos por premiação); todo evento nasce com o “Prêmio Destaque: Reconhecendo a Excelência Acadêmica”; empate = todos os mais votados; votação aberta até o evento ficar “Publicado” | Definição do responsável |
+| 28 | Anais começam com capa, folha de rosto e editorial gerados em LaTeX (`anais/abertura.tex.tmpl`); organizadores = apresentadores; editorial cita os premiados e o(s) trabalho(s) de maior nota final (sem imprimir a nota); número da edição (`eventos.numero_edicao`) obrigatório | Modelo dos Anais do V WSI (2025). Trechos específicos de uma edição (palestras, datas de vários dias) foram omitidos do texto padrão |
+| 29 | Docentes da banca baixam a ATA original e a versão com as assinaturas já coletadas a qualquer momento; o orientador baixa também a declaração gerada | Definição do responsável |
+| 30 | Aspas retas (`"`) viram `\textquotedbl{}` no LaTeX | Com o babel em português, `"a`/`"o` virariam ª/º em títulos |
 | 24 | Primeiro acesso por nome completo + e-mail + matrícula/SIAPE, sem códigos; “esqueci a senha” = ADMIN redefine o acesso | Definição do responsável. Risco aceito: quem conhecer os três dados de uma conta **ainda sem senha** pode criá-la. Mitigação: só contas sem senha, bloqueio após 5 erros, auditoria. A tabela `tokens_conta` permanece no banco, sem uso |
 
 ## Pendências de definição (não inventadas)
@@ -34,4 +40,4 @@
 1. **SIAPEs ausentes**: docentes sem SIAPE ficam marcados como “dados pendentes de conferência”.
 2. **Acesso excepcional do ADMIN a ATAs e declarações**: não implementado, aguardando regra institucional.
 3. **Coorientador**: fora do escopo desta versão.
-4. **Capa e sumário dos anais**: a consolidação já permite incluir, mas o conteúdo depende de aprovação.
+4. **Sumário dos anais** (lista de trabalhos com fotos, como no V WSI): não implementado; a capa, a folha de rosto e o editorial já são gerados.

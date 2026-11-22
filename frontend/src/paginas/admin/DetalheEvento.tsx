@@ -12,10 +12,11 @@ import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import ImageIcon from '@mui/icons-material/Image';
 import { api, enviarArquivo, mensagemDeErro } from '../../api/cliente';
-import type { Evento, Publicacao, SessaoEvento } from '../../api/tipos';
+import type { Evento, Publicacao, ResultadoPremiacao, SessaoEvento } from '../../api/tipos';
 import { Carregando, ErroCarregamento, EstadoChip, Secao, Titulo, Vazio } from '../../componentes/Comuns';
 import { useNotificar } from '../../componentes/Notificacoes';
 import { useConfirmar } from '../../componentes/Confirmacao';
+import { ResultadoPremiacoes } from '../../componentes/ResultadoPremiacoes';
 import { estadosEvento, estadosPublicacao, estadosTrabalho, formatarData, rotulo } from '../../utilitarios/rotulos';
 
 interface TrabalhoProgramacao { id: string; titulo: string; aluno: string; orientador: string | null; estado: string; ordem: number | null; sessao: string | null; temArtigo: boolean; temApresentacao: boolean }
@@ -25,6 +26,7 @@ interface Detalhe {
   trabalhos: TrabalhoProgramacao[];
   apresentadores: { docenteId: string; nome: string; podePublicar: boolean }[];
   publicacoes: Publicacao[];
+  premiacoes: ResultadoPremiacao[];
 }
 
 export function DetalheEvento() {
@@ -90,7 +92,13 @@ export function DetalheEvento() {
       <Stack direction="row" spacing={1} sx={{ mb: 3 }}>
         <EstadoChip estado={e.estado} rotulo={rotulo(estadosEvento, e.estado)} />
         <Chip size="small" label={e.futuro ? 'Apresentação futura' : 'Apresentação já ocorreu'} />
+        {e.numeroEdicao && <Chip size="small" variant="outlined" label={`Edição nº ${e.numeroEdicao}`} />}
       </Stack>
+      {!e.numeroEdicao && (
+        <Alert severity="warning" sx={{ mb: 3 }} action={<Button color="inherit" component={RouterLink} to={`/admin/eventos/${id}/editar`}>Informar</Button>}>
+          Informe o <strong>número da edição</strong> do evento (ex.: 6 para o VI WSI): ele é obrigatório para gerar a capa dos anais.
+        </Alert>
+      )}
 
       <Secao titulo="Trabalhos e programação" dica="A ordem definida aqui é usada na página pública, no PDF das apresentações e nos anais."
         acoes={
@@ -174,6 +182,10 @@ export function DetalheEvento() {
             ))}
           </List>
         )}
+      </Secao>
+
+      <Secao titulo="Premiações" dica="Cada docente vota em até dois trabalhos por premiação. O mais votado (ou os empatados) é citado no editorial dos anais. A votação fica aberta até o evento ser marcado como Publicado.">
+        <ResultadoPremiacoes premiacoes={data.premiacoes} eventoId={id} aoAlterar={() => void refetch()} />
       </Secao>
 
       <Secao titulo="Documentos consolidados">

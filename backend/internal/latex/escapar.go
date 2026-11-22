@@ -49,6 +49,9 @@ func Escapar(s string) string {
 			b.WriteString(`{[}`)
 		case ']':
 			b.WriteString(`{]}`)
+		case '"':
+			// Com babel (português), "a e "o viram ª e º: aspas retas são sempre literais.
+			b.WriteString(`\textquotedbl{}`)
 		case '\u00A0':
 			b.WriteByte(' ')
 		default:

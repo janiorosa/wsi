@@ -33,12 +33,16 @@ type Resultado struct {
 type Documento struct {
 	Arquivo        string // ex.: "ata/ata.tex.tmpl"
 	PaginasMinimas int
-	PaginasMaximas int // 0 = sem limite
+	PaginasMaximas int      // 0 = sem limite
+	Recursos       []string // imagens adicionais (relativas ao diretório de templates), copiadas com o nome base
 }
 
 var (
 	DocumentoATA        = Documento{Arquivo: "ata/ata.tex.tmpl", PaginasMinimas: 2}
 	DocumentoDeclaracao = Documento{Arquivo: "declaracao-antiplagio/declaracao.tex.tmpl", PaginasMinimas: 1, PaginasMaximas: 1}
+	// Páginas iniciais dos anais: capa, folha de rosto e editorial (3 ou mais páginas).
+	DocumentoAnaisAbertura = Documento{Arquivo: "anais/abertura.tex.tmpl", PaginasMinimas: 3,
+		Recursos: []string{"anais/logo-wsi.png", "anais/logo-ifmg.png"}}
 )
 
 var (
@@ -78,6 +82,11 @@ func (c *Compilador) Compilar(ctx context.Context, doc Documento, dados any, des
 
 	if err := copiar(filepath.Join(c.DiretorioTemplates, "comum", "brasao.png"), filepath.Join(dir, "brasao.png")); err != nil {
 		return Resultado{}, fmt.Errorf("brasão não encontrado: %w", err)
+	}
+	for _, recurso := range doc.Recursos {
+		if err := copiar(filepath.Join(c.DiretorioTemplates, recurso), filepath.Join(dir, filepath.Base(recurso))); err != nil {
+			return Resultado{}, fmt.Errorf("imagem do documento não encontrada (%s): %w", recurso, err)
+		}
 	}
 	if err := os.WriteFile(filepath.Join(dir, "documento.tex"), fonte, 0o600); err != nil {
 		return Resultado{}, err

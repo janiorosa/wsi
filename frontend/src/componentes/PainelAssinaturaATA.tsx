@@ -40,6 +40,16 @@ export function PainelAssinaturaATA({ ata, aoAtualizar }: { ata: ResumoATA; aoAt
             {ata.estado === 'finalizada' ? 'Baixar ATA final' : 'Baixar ATA para assinar'}
           </Button>
         )}
+        {ata.podeBaixarOriginal && (
+          <Button variant="text" startIcon={<DownloadIcon />} href={urlApi(`/atas/${ata.id}/documento?versao=original`)}>
+            ATA original (em branco)
+          </Button>
+        )}
+        {ata.podeBaixarAssinada && ata.estado !== 'finalizada' && (
+          <Button variant="text" startIcon={<DownloadIcon />} href={urlApi(`/atas/${ata.id}/documento?versao=assinada`)}>
+            ATA com as assinaturas coletadas ({ata.assinaturasColetadas} de {ata.signatarios.length})
+          </Button>
+        )}
         {ata.minhaVez && (
           <EnvioPDF
             size="large"

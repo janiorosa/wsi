@@ -31,6 +31,16 @@ Delimitadores de template: `<< >>` (Go `text/template`), escolhidos para não co
 ### Declaração (`DadosDeclaracao`)
 - `.NomeAluno`, `.Matricula`, `.Cidade`, `.Dia`, `.Mes`, `.Ano` (data de emissão do documento).
 
+### Páginas iniciais dos anais (`DadosAnaisAbertura`, `anais/abertura.tex.tmpl`)
+Não usa o preâmbulo/cabeçalho institucional. Imagens: `anais/logo-wsi.png` e `anais/logo-ifmg.png` (copiadas para a compilação).
+- `.LinhaVolume` — “v.6, n.1, jul. 2026.” (número da edição, mês abreviado e ano do evento).
+- `.Instituicao`, `.TituloWorkshop`, `.LocalCapa` — textos da capa (fundo azul).
+- `.DataLocal` — “28 de Julho de 2026, Ouro Branco, Minas Gerais”.
+- `.TituloFolhaRosto` — “ANAIS DO VI WORKSHOP DE SISTEMAS DE INFORMAÇÃO”.
+- `.Organizadores` — apresentadores do evento; `.Campus`, `.Endereco` — rodapé da folha de rosto.
+- `.Paragrafos` — editorial já montado em LaTeX a partir de texto escapado (premiados e maior nota em negrito).
+- `.Assinatura`, `.CargoAssinatura` — “A e B” / “Coordenadores do VI Workshop de Sistemas de Informação 2026”.
+
 ## Ao alterar um template
 1. Altere o arquivo e **incremente a versão** em `internal/latex/documentos.go`.
 2. Rode os testes de documentos (`docker compose --profile testes run --build --rm testes-backend`).

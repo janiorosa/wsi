@@ -573,3 +573,12 @@ trabalhos 1─N atas (no máximo 1 ativa) 1─N assinaturas_ata
 usuarios(aluno) 1─N documentos_gerados (declaração) | declaracoes_assinadas
 eventos 1─N publicacoes_evento 1─N itens_publicacao N─1 trabalhos
 ```
+
+## Migração 0003 (parecer, premiações e edição)
+
+| Alteração | Descrição |
+|---|---|
+| `avaliacoes.parecer` (text), `avaliacoes.parecer_atualizado_em` | Parecer descritivo do avaliador para o aluno; informativo, independente da nota. |
+| `eventos.numero_edicao` (integer 1–3999, opcional) | Número da edição (ex.: 6 = VI WSI); obrigatório para gerar os anais. |
+| `premiacoes` (id, evento_id, nome, descricao, ordem, criado_por, criado_em; único por evento+nome) | Premiações do evento. A migração cria o “Prêmio Destaque: Reconhecendo a Excelência Acadêmica” em todos os eventos existentes; novos eventos o recebem na criação. |
+| `votos_premiacao` (premiacao_id, docente_id, trabalho_id, votado_em; PK nas três colunas) | Votos dos docentes. Limite de 2 por docente e premiação verificado na API, com bloqueio da premiação. |

@@ -24,6 +24,7 @@ import (
 	"wsi/internal/configuracao"
 	"wsi/internal/documentos"
 	"wsi/internal/fila"
+	"wsi/internal/latex"
 	"wsi/internal/pdf"
 	"wsi/internal/seguranca"
 )
@@ -368,7 +369,7 @@ func novoCenario(t *testing.T) *cenario {
 	_, e3 = a.criarUsuario("Docente Externo", PerfilDocente)
 	s.orientador, s.ex1, s.ex2, s.ex3 = a.entrar(eo, ""), a.entrar(e1, ""), a.entrar(e2, ""), a.entrar(e3, "")
 	data := time.Now().AddDate(0, 0, 30).Format("2006-01-02")
-	ev := s.admin.ok("POST", "/admin/eventos", map[string]string{"nome": "Workshop de TCC", "edicao": "2026", "dataApresentacao": data,
+	ev := s.admin.ok("POST", "/admin/eventos", map[string]any{"nome": "Workshop de TCC", "edicao": "2026", "numeroEdicao": 6, "dataApresentacao": data,
 		"horarioApresentacao": "19:00", "local": "Salão de Convenções do Campus IFMG Ouro Branco", "estado": "aberto"})
 	s.eventoID = m(ev)["id"].(string)
 	s.admin.ok("POST", "/admin/criterios", map[string]any{"nome": "Critério A", "descricao": "Teste", "ativo": true, "ordem": 1})
@@ -480,6 +481,13 @@ func TestFluxoCompletoDeAvaliacaoEAssinaturas(t *testing.T) {
 	if status, _ := s.orientador.baixar("/atas/" + ataID + "/documento"); status != 403 {
 		t.Fatalf("orientador não pode baixar antes da sua vez: %d", status)
 	}
+	// ...mas a ATA original (em branco) fica disponível a qualquer momento para os docentes da banca.
+	if status, conteudo := s.orientador.baixar("/atas/" + ataID + "/documento?versao=original"); status != 200 || !strings.Contains(conteudo, "ATA original") {
+		t.Fatalf("orientador deveria baixar a ATA original a qualquer momento: %d", status)
+	}
+	if status, _ := s.ex2.baixar("/atas/" + ataID + "/documento?versao=assinada"); status != 404 {
+		t.Fatalf("sem assinaturas ainda não há versão assinada: %d", status)
+	}
 	if status, _ := s.ex1.enviar("/atas/"+ataID+"/assinatura", map[string]string{"posicao": "1"}, pdfMinimo("ex1 adiantado")); status != 403 {
 		t.Fatalf("signatário posterior não pode antecipar: %d", status)
 	}
@@ -500,6 +508,13 @@ func TestFluxoCompletoDeAvaliacaoEAssinaturas(t *testing.T) {
 	_, conteudo := s.orientador.baixar("/atas/" + ataID + "/documento")
 	if !strings.Contains(conteudo, "assinado aluno") {
 		t.Fatal("o orientador deveria receber a última versão assinada")
+	}
+	// Examinador baixa a versão parcialmente assinada antes da sua vez; aluno não usa essas versões.
+	if status, conteudo := s.ex2.baixar("/atas/" + ataID + "/documento?versao=assinada"); status != 200 || !strings.Contains(conteudo, "assinado aluno") {
+		t.Fatalf("examinador deveria baixar a ATA com as assinaturas já coletadas: %d", status)
+	}
+	if status, _ := aluno.baixar("/atas/" + ataID + "/documento?versao=original"); status != 404 {
+		t.Fatalf("aluno não usa o download de versões dos docentes: %d", status)
 	}
 	for i, c := range []*cliente{s.orientador, s.ex1, s.ex2} {
 		if status, v := c.enviar("/atas/"+ataID+"/assinatura", map[string]string{"posicao": fmt.Sprint(i + 2)}, pdfMinimo(fmt.Sprintf("assinatura %d", i+2))); status != 200 {
@@ -618,7 +633,15 @@ func TestAnaisSomenteArtigosNaOrdemDaProgramacao(t *testing.T) {
 	if r["tarefaId"] != r2["tarefaId"] {
 		t.Fatal("duplo clique não pode criar duas tarefas")
 	}
-	servico := &documentos.Servico{Pool: s.a.pool, Armazenamento: s.a.arm}
+	// Votação: o mais votado aparece no editorial (páginas iniciais geradas em LaTeX).
+	votacoes := lista(s.ex1.ok("GET", "/docente/premiacoes", nil))
+	premiacaoID := m(lista(m(votacoes[0])["premiacoes"])[0])["id"].(string)
+	s.ex1.ok("POST", "/docente/premiacoes/"+premiacaoID+"/votos", map[string]string{"trabalhoId": trabB})
+	if _, err := exec.LookPath("xelatex"); err != nil {
+		t.Skip("xelatex não disponível: teste executado no container de testes")
+	}
+	compilador := &latex.Compilador{DiretorioTemplates: filepath.Join("..", "..", "templates", "documentos"), DiretorioTemp: t.TempDir()}
+	servico := &documentos.Servico{Pool: s.a.pool, Armazenamento: s.a.arm, Compilador: compilador}
 	tarefa := fila.Tarefa{ID: r["tarefaId"].(string), Tipo: fila.TipoAnais, EntidadeID: s.eventoID,
 		Parametros: map[string]string{"publicacao_id": r["publicacaoId"].(string)}}
 	if _, _, err := servico.GerarPublicacao("anais", "artigo")(context.Background(), tarefa, func(int) {}); err != nil {
@@ -661,6 +684,16 @@ func TestAnaisSomenteArtigosNaOrdemDaProgramacao(t *testing.T) {
 			strings.Index(texto, "artigo B") > strings.Index(texto, "artigo A v2") {
 			t.Fatalf("conteúdo ou ordem dos anais incorretos: %q", texto)
 		}
+		normalizado := strings.Join(strings.Fields(texto), " ")
+		if !strings.Contains(normalizado, "ANAIS DO VI WORKSHOP") || !strings.Contains(normalizado, "EDITORIAL") ||
+			!strings.Contains(normalizado, "v.6, n.1") || strings.Index(normalizado, "EDITORIAL") > strings.Index(normalizado, "artigo B") {
+			t.Fatalf("páginas iniciais dos anais ausentes ou fora de ordem: %q", normalizado)
+		}
+	}
+	var paginas int
+	s.a.pool.QueryRow(context.Background(), `SELECT total_paginas FROM publicacoes_evento WHERE id = $1`, pub["id"]).Scan(&paginas)
+	if paginas < 3+2 {
+		t.Fatalf("anais deveriam ter as páginas iniciais + 2 artigos, têm %d páginas", paginas)
 	}
 }
 
@@ -705,4 +738,79 @@ func TestPrimeiroAcessoPorDadosERedefinicaoPeloAdmin(t *testing.T) {
 		t.Fatal("após redefinição o primeiro acesso deve funcionar novamente")
 	}
 	a.entrar("maria.jose@exemplo.com", "")
+}
+
+func TestParecerVotacaoEDeclaracaoDoOrientando(t *testing.T) {
+	s := novoCenario(t)
+	aluno, trab := s.novoTrabalho("Aluna Parecer", s.ex1ID)
+	_, trab2 := s.novoTrabalho("Aluno Votado Dois", s.ex1ID)
+	_, trab3 := s.novoTrabalho("Aluno Votado Tres", s.ex1ID)
+
+	// Parecer: salvo antes e separadamente da nota; visível ao aluno; somente membros da banca.
+	s.ex1.ok("PUT", "/docente/avaliacoes/"+trab+"/parecer", map[string]string{"parecer": "Revise a seção 2 e amplie os resultados."})
+	if status, _ := s.ex3.req("PUT", "/docente/avaliacoes/"+trab+"/parecer", map[string]string{"parecer": "intruso"}); status != 404 {
+		t.Fatalf("docente fora da banca não pode registrar parecer: %d", status)
+	}
+	tela := m(s.ex1.ok("GET", "/docente/avaliacoes/"+trab, nil))
+	if tela["parecer"] != "Revise a seção 2 e amplie os resultados." || tela["estado"] != "rascunho" || tela["podeEditarParecer"] != true {
+		t.Fatalf("parecer não salvo corretamente: %v", tela)
+	}
+	pareceres := lista(m(aluno.ok("GET", "/aluno/painel", nil))["pareceres"])
+	if len(pareceres) != 1 || m(pareceres[0])["avaliador"] != "Examinador Um" {
+		t.Fatalf("aluno deveria ver o parecer do examinador: %v", pareceres)
+	}
+
+	// Votação: até dois trabalhos por premiação; votos podem ser retirados enquanto a votação estiver aberta.
+	votacoes := lista(s.ex3.ok("GET", "/docente/premiacoes", nil))
+	if len(votacoes) != 1 {
+		t.Fatalf("deveria haver um evento em votação: %v", votacoes)
+	}
+	premiacoesEvento := lista(m(votacoes[0])["premiacoes"])
+	if len(premiacoesEvento) != 1 || m(premiacoesEvento[0])["nome"] != "Prêmio Destaque: Reconhecendo a Excelência Acadêmica" {
+		t.Fatalf("todo evento deveria ter a premiação padrão: %v", premiacoesEvento)
+	}
+	pid := m(premiacoesEvento[0])["id"].(string)
+	s.ex3.ok("POST", "/docente/premiacoes/"+pid+"/votos", map[string]string{"trabalhoId": trab})
+	s.ex3.ok("POST", "/docente/premiacoes/"+pid+"/votos", map[string]string{"trabalhoId": trab}) // repetido: sem efeito
+	s.ex3.ok("POST", "/docente/premiacoes/"+pid+"/votos", map[string]string{"trabalhoId": trab2})
+	if status, _ := s.ex3.req("POST", "/docente/premiacoes/"+pid+"/votos", map[string]string{"trabalhoId": trab3}); status != 409 {
+		t.Fatalf("terceiro voto deveria ser recusado: %d", status)
+	}
+	s.ex3.ok("DELETE", "/docente/premiacoes/"+pid+"/votos/"+trab2, nil)
+	s.ex3.ok("POST", "/docente/premiacoes/"+pid+"/votos", map[string]string{"trabalhoId": trab3})
+	s.ex1.ok("POST", "/docente/premiacoes/"+pid+"/votos", map[string]string{"trabalhoId": trab})
+	detalhe := m(s.admin.ok("GET", "/admin/eventos/"+s.eventoID, nil))
+	resultado := m(lista(detalhe["premiacoes"])[0])
+	vencedores := lista(resultado["vencedores"])
+	if len(vencedores) != 1 || m(vencedores[0])["trabalhoId"] != trab || m(vencedores[0])["votos"].(float64) != 2 {
+		t.Fatalf("vencedor incorreto: %v", resultado)
+	}
+	// Premiações extras cadastradas pelo ADMIN.
+	s.admin.ok("POST", "/admin/eventos/"+s.eventoID+"/premiacoes", map[string]string{"nome": "Melhor Apresentação"})
+	if status, _ := s.admin.req("POST", "/admin/eventos/"+s.eventoID+"/premiacoes", map[string]string{"nome": "Melhor Apresentação"}); status != 409 {
+		t.Fatalf("premiação duplicada deveria ser recusada: %d", status)
+	}
+	// Evento publicado: votação encerrada.
+	s.a.pool.Exec(context.Background(), `UPDATE eventos SET estado = 'publicado' WHERE id = $1`, s.eventoID)
+	if status, _ := s.ex3.req("DELETE", "/docente/premiacoes/"+pid+"/votos/"+trab3, nil); status != 409 {
+		t.Fatalf("votação encerrada não aceita alterações: %d", status)
+	}
+
+	// Declaração anti-plágio gerada: o orientador ativo também pode baixar.
+	salvo, err := s.a.arm.Salvar("declaracoes", bytes.NewReader(pdfMinimo("declaracao gerada")))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var alunoID, docID string
+	s.a.pool.QueryRow(context.Background(), `SELECT aluno_id::text FROM trabalhos WHERE id = $1`, trab).Scan(&alunoID)
+	if err := s.a.pool.QueryRow(context.Background(), `INSERT INTO documentos_gerados (tipo, entidade_id, versao, chave_armazenamento, sha256, tamanho, versao_template, gerado_por)
+		VALUES ('declaracao_antiplagio', $1, 1, $2, $3, $4, 'teste', $1) RETURNING id::text`, alunoID, salvo.Chave, salvo.SHA256, salvo.Tamanho).Scan(&docID); err != nil {
+		t.Fatal(err)
+	}
+	if status, _ := s.orientador.baixar("/documentos/" + docID); status != 200 {
+		t.Fatalf("orientador deveria baixar a declaração gerada do orientando: %d", status)
+	}
+	if status, _ := s.ex1.baixar("/documentos/" + docID); status != 404 {
+		t.Fatalf("examinador não pode baixar a declaração: %d", status)
+	}
 }

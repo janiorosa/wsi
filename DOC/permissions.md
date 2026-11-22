@@ -20,9 +20,11 @@ Rotas `/admin/*` exigem o contexto ADMIN; `/docente/*` e `/apresentador/*`, o co
 |---|---|---|---|---|---|---|
 | Título, resumo, artigo e apresentação | ✅ | ✅ | ✅ | ✅ (arquivos e título) | Lista de trabalhos (sem arquivos) | Título na programação |
 | Notas individuais | — | ✅ (todas) | Somente a própria | — | — | — |
-| ATA (durante o fluxo) | Somente na sua vez | Somente na sua vez | Somente na sua vez | — | — | — |
+| ATA (durante o fluxo) | Somente na sua vez | Na sua vez + original e versão parcialmente assinada a qualquer momento | Idem | — | — | — |
 | ATA final | ✅ | ✅ | ✅ | — | — | — |
-| Declaração gerada | ✅ | — | — | — | — | — |
+| Declaração gerada | ✅ | ✅ (orientador ativo) | — | — | — | — |
+| Parecer do avaliador | ✅ (leitura) | ✅ (próprio + leitura dos demais) | ✅ (próprio + leitura dos demais) | — | — | — |
+| Votos de premiação | — | Próprios votos | Próprios votos | Contagem do evento | Contagem e cadastro de premiações | — |
 | Declaração assinada | ✅ | ✅ (orientador ativo) | — | — | — | — |
 | Anais/apresentações (rascunho) | — | — | — | ✅ conferir/publicar | Situação | — |
 | Anais/apresentações publicados | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
@@ -33,6 +35,7 @@ O ADMIN **não** recebe acesso automático às ATAs nem às declarações. Um ev
 
 - **ADMIN**: eventos, sessões, apresentadores, programação, usuários, aprovação de docentes, redefinição de acesso (exceto da própria conta), perfis ADMIN/DOCENTE (nunca em conta de aluno; o último ADMIN não pode ser removido), vínculos, critérios gerais, dados institucionais, fila de documentos, auditoria e exceção de evento passado.
 - **DOCENTE (orientador do trabalho)**: associar evento futuro, definir banca, critérios extras, reabrir avaliação, gerar, regenerar ou reiniciar a ATA e baixar a declaração assinada.
-- **DOCENTE (membro da banca)**: avaliar e assinar a ATA na sua vez.
+- **DOCENTE (membro da banca)**: avaliar (nota e parecer), baixar a ATA original/parcial e assinar na sua vez.
+- **DOCENTE (qualquer)**: votar em até dois trabalhos por premiação dos eventos em votação.
 - **APRESENTADOR**: ordenar a programação, gerar apresentações e anais, conferir e publicar (se tiver a permissão `pode_publicar`).
 - **ALUNO**: o próprio trabalho, arquivos, orientador, declaração e assinatura da própria ATA.

@@ -376,7 +376,25 @@ func (s *Servidor) baixarDocumentoATA(w http.ResponseWriter, r *http.Request) er
 	}
 	var chave *string
 	nome := nomeDownload("ATA_TCC", d.AlunoNome)
+	versao := r.URL.Query().Get("versao")
 	switch {
+	// Docentes da banca (ordem >= 2): original em branco ou versão atual assinada, a qualquer momento.
+	case versao == "original":
+		if d.MinhaOrdem < 2 || d.Estado == "gerando" {
+			return erroNaoEncontrado("Documento da ATA indisponível.")
+		}
+		chave = d.ChaveOriginal
+		nome = nomeDownload("ATA_TCC", d.AlunoNome, "original")
+	case versao == "assinada":
+		if d.MinhaOrdem < 2 {
+			return erroNaoEncontrado("Documento da ATA indisponível.")
+		}
+		chave = d.ChaveAssinado
+		assinadas := d.Posicao - 1
+		if d.Estado == "finalizada" {
+			assinadas = d.Total
+		}
+		nome = nomeDownload("ATA_TCC", d.AlunoNome, "assinaturas", strconv.Itoa(assinadas)+"_de_"+strconv.Itoa(d.Total))
 	case d.Estado == "finalizada":
 		chave = d.ChaveAssinado
 		nome = nomeDownload("ATA_TCC", d.AlunoNome, "final")
@@ -395,7 +413,7 @@ func (s *Servidor) baixarDocumentoATA(w http.ResponseWriter, r *http.Request) er
 	if chave == nil {
 		return erroNaoEncontrado("Documento da ATA indisponível.")
 	}
-	s.auditar(r.Context(), s.pool, r, "baixar_ata", "ata", d.ID, map[string]any{"estado": d.Estado, "posicao": d.Posicao})
+	s.auditar(r.Context(), s.pool, r, "baixar_ata", "ata", d.ID, map[string]any{"estado": d.Estado, "posicao": d.Posicao, "versao": versao})
 	return s.enviarArquivo(w, r, *chave, nome, "application/pdf", false)
 }
 

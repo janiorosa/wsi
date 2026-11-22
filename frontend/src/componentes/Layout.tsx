@@ -19,6 +19,7 @@ import FactCheckIcon from '@mui/icons-material/FactCheck';
 import SchoolIcon from '@mui/icons-material/School';
 import DrawIcon from '@mui/icons-material/Draw';
 import CampaignIcon from '@mui/icons-material/Campaign';
+import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
 import PersonSearchIcon from '@mui/icons-material/PersonSearch';
 import GavelIcon from '@mui/icons-material/Gavel';
@@ -61,6 +62,7 @@ function itensDoContexto(contexto: string, ehApresentador: boolean): { grupo: st
         { rotulo: 'AVALIAR', para: '/docente/avaliar', icone: <FactCheckIcon />, destaque: true },
         { rotulo: 'MEUS ORIENTANDOS', para: '/docente/orientandos', icone: <SchoolIcon /> },
         { rotulo: 'ATAs para assinar', para: '/docente/atas', icone: <DrawIcon /> },
+        { rotulo: 'Premiações (votar)', para: '/docente/premiacoes', icone: <EmojiEventsIcon /> },
       ] },
     ];
     if (ehApresentador) grupos.push({ grupo: 'Apresentador', itens: [{ rotulo: 'Meus eventos (apresentador)', para: '/docente/apresentador', icone: <CampaignIcon /> }] });
@@ -135,9 +137,9 @@ export function Layout() {
               <MenuIcon />
             </IconButton>
           )}
-          <Typography component={RouterLink} to="/" variant="h6" sx={{ color: 'primary.dark', fontWeight: 800, textDecoration: 'none', mr: 2 }}>
-            WSI · TCC
-          </Typography>
+          <Box component={RouterLink} to="/" sx={{ display: 'flex', alignItems: 'center', mr: 2 }} aria-label="WSI — Workshop de Sistemas de Informação: página inicial">
+            <Box component="img" src="/logo-wsi.png" alt="WSI — Workshop de Sistemas de Informação" sx={{ height: 40, width: 'auto', display: 'block' }} />
+          </Box>
           <Box sx={{ flexGrow: 1 }} />
           <Stack direction="row" spacing={1} alignItems="center">
             {telaGrande && <Typography variant="body2" color="text.secondary">{sessao.usuario?.nome}</Typography>}

@@ -1,11 +1,14 @@
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Alert, Box, Button, Card, CardContent, List, ListItem, ListItemText, Stack, TextField, Typography } from '@mui/material';
+import { Alert, Box, Button, Card, CardContent, Chip, List, ListItem, ListItemText, Stack, TextField, Typography } from '@mui/material';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
+import CloudDoneIcon from '@mui/icons-material/CloudDone';
+import SyncIcon from '@mui/icons-material/Sync';
+import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import { api, mensagemDeErro, urlApi } from '../../api/cliente';
 import { Carregando, ErroCarregamento, Secao, Titulo, Vazio } from '../../componentes/Comuns';
 import { EnvioPDF } from '../../componentes/EnvioPDF';
@@ -14,12 +17,14 @@ import { aplicarErrosServidor, campo } from '../../utilitarios/formularios';
 import { formatarTamanho } from '../../utilitarios/rotulos';
 import { usePainelAluno } from './dados';
 
+// Salvamento automático: aceita campos ainda vazios (o aluno pode escrever aos poucos).
 const esquema = z.object({
-  titulo: z.string().trim().min(1, 'Informe o título.').max(400, 'Máximo de 400 caracteres.'),
-  resumo: z.string().trim().min(1, 'Informe o resumo.').max(6000, 'Máximo de 6000 caracteres.'),
+  titulo: z.string().max(400, 'Máximo de 400 caracteres.'),
+  resumo: z.string().max(6000, 'Máximo de 6000 caracteres.'),
   linkOverleaf: z.string().trim().refine((v) => v === '' || /^https?:\/\/\S+$/.test(v), 'Informe um endereço válido (https://...).'),
 });
 type Dados = z.infer<typeof esquema>;
+type Situacao = 'ocioso' | 'salvando' | 'salvo' | 'erro';
 
 // Título/resumo, artigo e apresentação podem ser enviados em momentos diferentes.
 export function MeuTcc() {
@@ -27,43 +32,86 @@ export function MeuTcc() {
   const cliente = useQueryClient();
   const notificar = useNotificar();
   const local = useLocation();
-  const form = useForm<Dados>({ resolver: zodResolver(esquema), defaultValues: { titulo: '', resumo: '', linkOverleaf: '' } });
+  const form = useForm<Dados>({ resolver: zodResolver(esquema), mode: 'onChange', defaultValues: { titulo: '', resumo: '', linkOverleaf: '' } });
+  const valores = useWatch({ control: form.control });
+  const [situacao, setSituacao] = useState<Situacao>('ocioso');
+  const [salvoEm, setSalvoEm] = useState('');
+  const carregado = useRef(false);
+  const ultimoSalvo = useRef('');
+
+  // Preenche o formulário somente na primeira carga: o salvamento automático não sobrescreve o que está sendo digitado.
   useEffect(() => {
-    if (data?.trabalho) form.reset({ titulo: data.trabalho.titulo, resumo: data.trabalho.resumo, linkOverleaf: data.trabalho.linkOverleaf });
+    if (data && !carregado.current) {
+      carregado.current = true;
+      const inicial = { titulo: data.trabalho?.titulo ?? '', resumo: data.trabalho?.resumo ?? '', linkOverleaf: data.trabalho?.linkOverleaf ?? '' };
+      ultimoSalvo.current = JSON.stringify(inicial);
+      form.reset(inicial);
+    }
   }, [data, form]);
   useEffect(() => {
     if (local.hash) document.getElementById(local.hash.slice(1))?.scrollIntoView({ behavior: 'smooth' });
   }, [local.hash, data]);
+
+  const editavel = data?.trabalho?.editavel ?? true;
+  useEffect(() => {
+    if (!carregado.current || !editavel) return;
+    const atual = { titulo: valores.titulo ?? '', resumo: valores.resumo ?? '', linkOverleaf: valores.linkOverleaf ?? '' };
+    const serializado = JSON.stringify(atual);
+    if (serializado === ultimoSalvo.current) return;
+    const id = setTimeout(async () => {
+      if (!(await form.trigger())) return;
+      setSituacao('salvando');
+      try {
+        await api.put('/aluno/trabalho', atual);
+        ultimoSalvo.current = serializado;
+        setSituacao('salvo');
+        setSalvoEm(new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }));
+        void cliente.invalidateQueries({ queryKey: ['aluno'] });
+      } catch (e) {
+        setSituacao('erro');
+        if (!aplicarErrosServidor(form, e)) notificar(mensagemDeErro(e), 'error');
+      }
+    }, 1000);
+    return () => clearTimeout(id);
+  }, [valores.titulo, valores.resumo, valores.linkOverleaf, editavel]); // salvamento com atraso de 1 s após a última digitação
+
   if (isLoading) return <Carregando />;
   if (error || !data) return <ErroCarregamento erro={error} />;
   const atualizar = () => void cliente.invalidateQueries({ queryKey: ['aluno'] });
-  const editavel = data.trabalho?.editavel ?? true;
-
-  const salvar = form.handleSubmit(async (d) => {
-    try {
-      await api.put('/aluno/trabalho', d);
-      notificar('Dados do TCC salvos.');
-      atualizar();
-    } catch (e) {
-      if (!aplicarErrosServidor(form, e)) notificar(mensagemDeErro(e), 'error');
-    }
-  });
 
   return (
     <>
-      <Titulo titulo="ENVIAR MEU TCC" subtitulo="Você pode salvar o título e o resumo e enviar o artigo e a apresentação em momentos diferentes." />
+      <Titulo titulo="ENVIAR MEU TCC" subtitulo="O título e o resumo são salvos automaticamente enquanto você digita. O artigo e a apresentação podem ser enviados em momentos diferentes." />
       {!data.orientador && <Alert severity="info" sx={{ mb: 3 }}>Você ainda não tem orientador. Escolha um em “Orientador”.</Alert>}
-      <Secao titulo="Título e resumo">
+      <Secao titulo="Título e resumo" acoes={editavel ? (
+        situacao === 'salvando' ? <Chip size="small" icon={<SyncIcon />} label="Salvando..." variant="outlined" />
+          : situacao === 'erro' ? <Chip size="small" color="error" icon={<ErrorOutlineIcon />} label="Não foi possível salvar" />
+            : situacao === 'salvo' ? <Chip size="small" color="success" variant="outlined" icon={<CloudDoneIcon />} label={`Salvo automaticamente às ${salvoEm}`} />
+              : <Chip size="small" variant="outlined" icon={<CloudDoneIcon />} label="Salvamento automático" />
+      ) : undefined}>
         {!editavel && <Alert severity="info" sx={{ mb: 2 }}>A ATA já foi gerada: título e resumo não podem mais ser alterados.</Alert>}
-        <form onSubmit={salvar} noValidate>
-          <Stack spacing={2}>
-            <TextField label="Título do trabalho" required disabled={!editavel} {...campo(form, 'titulo')} />
-            <TextField label="Resumo" required multiline minRows={6} disabled={!editavel} {...campo(form, 'resumo')} />
-            <TextField label="Link do Overleaf (opcional)" disabled={!editavel} {...campo(form, 'linkOverleaf')} />
-            {editavel && <Button type="submit" variant="contained" size="large" sx={{ alignSelf: 'flex-start' }} disabled={form.formState.isSubmitting}>Salvar título e resumo</Button>}
-          </Stack>
-        </form>
+        <Stack spacing={2}>
+          <TextField label="Título do trabalho" required disabled={!editavel} {...campo(form, 'titulo')} />
+          <TextField label="Resumo" required multiline minRows={6} disabled={!editavel} {...campo(form, 'resumo')} />
+          <TextField label="Link do Overleaf (opcional)" disabled={!editavel} {...campo(form, 'linkOverleaf')} />
+        </Stack>
       </Secao>
+
+      {data.pareceres.length > 0 && (
+        <Secao titulo="Pareceres da banca" dica="Comentários dos avaliadores para você melhorar e corrigir o artigo. São informativos e não alteram a nota.">
+          <Stack spacing={2}>
+            {data.pareceres.map((p, i) => (
+              <Card key={i} variant="outlined">
+                <CardContent>
+                  <Typography fontWeight={700}>{p.avaliador} <Typography component="span" variant="body2" color="text.secondary">· {p.papel === 'orientador' ? 'Orientador' : 'Examinador'}{p.atualizadoEm ? ` · atualizado em ${p.atualizadoEm}` : ''}</Typography></Typography>
+                  <Typography sx={{ whiteSpace: 'pre-line', mt: 1 }}>{p.parecer}</Typography>
+                </CardContent>
+              </Card>
+            ))}
+          </Stack>
+        </Secao>
+      )}
+
       <Box sx={{ display: 'grid', gap: 3, gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' } }}>
         {(['artigo', 'apresentacao'] as const).map((tipo) => {
           const arquivos = data.trabalho?.arquivos[tipo] ?? [];

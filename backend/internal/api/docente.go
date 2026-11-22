@@ -386,6 +386,9 @@ func (s *Servidor) docenteFichaTrabalho(w http.ResponseWriter, r *http.Request) 
 		return err
 	}
 	resp["ata"] = ata
+	if resp["pareceres"], err = listarPareceres(ctx, s.pool, id); err != nil {
+		return err
+	}
 
 	if acesso.EhOrientador {
 		examinadores := 0
@@ -401,10 +404,11 @@ func (s *Servidor) docenteFichaTrabalho(w http.ResponseWriter, r *http.Request) 
 			}
 		}
 		resp["podeGerarATA"] = ata == nil && todasFinalizadas && examinadores > 0 && evento != nil
-		dec, err := resumoDeclaracao(ctx, s.pool, acesso.AlunoID, false)
+		dec, err := resumoDeclaracao(ctx, s.pool, acesso.AlunoID, true)
 		if err != nil {
 			return err
 		}
+		dec.TarefaAtivaID = nil
 		resp["declaracao"] = dec
 		if resp["historico"], err = listarHistorico(ctx, s.pool, id); err != nil {
 			return err

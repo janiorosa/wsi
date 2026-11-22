@@ -1,0 +1,80 @@
+% Gerado automaticamente pelo sistema WSI: páginas iniciais dos anais
+% (capa, folha de rosto e editorial). Não editar o PDF/TeX gerado.
+\documentclass[a4paper,12pt]{article}
+\usepackage{fontspec}
+\usepackage[brazil]{babel}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage[a4paper,left=2.5cm,right=2.5cm,top=2.5cm,bottom=2.5cm]{geometry}
+
+\tolerance=2000
+\emergencystretch=3em
+\pagestyle{empty}
+\setlength{\parindent}{1.25cm}
+\setlength{\parskip}{0.2cm}
+\definecolor{azulanais}{RGB}{37,40,120}
+
+\begin{document}
+
+% ---------------------------------------------------------------------
+% Página 1: capa (fundo azul; logotipos sobre faixa branca no rodapé)
+% ---------------------------------------------------------------------
+\pagecolor{azulanais}
+\noindent\begin{minipage}{\linewidth}\raggedright\sffamily\color{white}
+{\Large\bfseries <<.LinhaVolume>>}\par
+\vspace*{6cm}
+{\LARGE\bfseries <<.Instituicao>>}\par
+\vspace{1.3cm}
+{\fontsize{40}{48}\selectfont\bfseries ANAIS}\par
+\vspace{0.6cm}
+{\LARGE\bfseries <<.TituloWorkshop>>}\par
+\vspace{2.6cm}
+{\Large\bfseries <<.LocalCapa>>}\par
+\end{minipage}
+\vfill
+\noindent\colorbox{white}{\parbox{\dimexpr\linewidth-2\fboxsep\relax}{%
+\vspace{0.25cm}\hspace*{0.4cm}%
+\raisebox{-0.5\height}{\includegraphics[height=2.4cm,keepaspectratio]{logo-wsi.png}}%
+\hfill
+\raisebox{-0.5\height}{\includegraphics[height=3cm,keepaspectratio]{logo-ifmg.png}}%
+\hspace*{0.4cm}\vspace{0.25cm}}}
+\newpage
+\nopagecolor
+
+% ---------------------------------------------------------------------
+% Página 2: folha de rosto
+% ---------------------------------------------------------------------
+\begin{center}
+{\Large\bfseries INSTITUTO FEDERAL DE MINAS GERAIS}\par
+{\large <<.DataLocal>>}\par
+\end{center}
+\vfill
+\begin{center}
+{\Large\bfseries <<.TituloFolhaRosto>>}\par
+\end{center}
+\vfill
+\begin{flushright}
+{\large\bfseries Organizadores}\par
+<<range .Organizadores>>{\large\bfseries <<.>>}\par
+<<end>>\end{flushright}
+\vfill
+\begin{center}
+{\large Instituto Federal de Minas Gerais – Campus <<.Campus>>}\par
+{\large <<.Endereco>>}\par
+\end{center}
+\newpage
+
+% ---------------------------------------------------------------------
+% Página 3 (e seguintes, se necessário): editorial
+% ---------------------------------------------------------------------
+\noindent{\Large\bfseries EDITORIAL}\par
+\vspace{0.8cm}
+<<range .Paragrafos>><<.>>\par
+<<end>>
+\vspace{1.8cm}
+\begin{flushright}
+<<.Assinatura>>\par
+\textbf{<<.CargoAssinatura>>}\par
+\end{flushright}
+
+\end{document}

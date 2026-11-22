@@ -36,6 +36,8 @@
   - exemplo: avaliadores 90,00, 70,00 e 90,00 → 83,33;
   - **aprovação: nota final ≥ 60,00**. A ATA registra “deliberou pela **Aprovação**” (≥ 60,00) ou “deliberou pela **Reprovação**” (< 60,00).
 - O critério geral **“Nota”** (0 a 100) existe sempre: é criado automaticamente, não pode ser excluído, renomeado nem desativado, e é aplicado a todos os trabalhos. Assim, todos os docentes da banca atribuem a sua Nota. O ADMIN pode cadastrar outros critérios gerais (que entram na média simples).
+- **Painel do docente**: os trabalhos pendentes de avaliação aparecem já na tela inicial, com o campo da nota. A nota é **salva automaticamente** como rascunho enquanto o docente digita e pode ser alterada a qualquer momento até ele clicar em **Enviar avaliação**; depois disso, não pode mais ser alterada.
+- **Parecer**: texto descritivo do avaliador para o aluno, **apenas informativo** (não entra na nota). É salvo automaticamente, pode ser escrito antes da nota e alterado mesmo depois do envio da nota, até a geração da ATA. O aluno vê os pareceres (com o nome do avaliador) na tela “Enviar meu TCC”.
 - A avaliação finalizada só pode ser **reaberta pelo orientador**, com motivo registrado, e somente antes da ATA.
 - Uma avaliação pendente impede a ATA. Quando a última avaliação obrigatória termina e o trabalho tem evento, **a ATA é gerada automaticamente**.
 
@@ -43,16 +45,22 @@
 - A nota final e a ordem dos signatários são **congeladas** quando a ATA é criada: 1 aluno, 2 orientador (“Professor Orientador”), 3… examinadores (“Examinador 1”, “Examinador 2”…).
 - Data, horário e local impressos vêm **sempre** do evento ou da sessão atual do trabalho, nunca do relógio do servidor nem da data de assinatura.
 - O fluxo é **independente por trabalho**. Um docente participa de vários fluxos ao mesmo tempo, sem interferência entre eles.
-- Somente o signatário da vez baixa e envia. O envio exige a posição atual, para que um duplo clique ou um reenvio não avance duas posições. Um arquivo rejeitado mantém o mesmo signatário.
+- Somente o signatário da vez envia. Os **docentes da banca** podem baixar a qualquer momento a ATA original (em branco) e a versão com as assinaturas já coletadas, mesmo que ainda faltem assinaturas. O envio exige a posição atual, para que um duplo clique ou um reenvio não avance duas posições. Um arquivo rejeitado mantém o mesmo signatário.
 - Cada envio válido **substitui** o arquivo assinado anterior, que é apagado. Ficam apenas os metadados: quem enviou, ordem, data/hora e SHA-256.
 - O PDF original pode ser regenerado enquanto ninguém assinou. Depois disso, só há o **reinício auditado**: a ATA é cancelada e outra é gerada.
 - O sistema não afirma que a assinatura enviada equivale à assinatura digital ICP-Brasil.
 
 ## Declaração anti-plágio
 - Gerada pelo aluno com o texto jurídico preservado, a data de **emissão** por extenso e a cidade configurada.
-- O aluno envia o PDF assinado (várias versões são permitidas). Somente o aluno e o orientador ativo acessam a declaração.
+- O aluno envia o PDF assinado (várias versões são permitidas). Somente o aluno e o orientador ativo acessam a declaração (gerada e assinada).
+
+## Premiações
+- O ADMIN cadastra premiações por evento. Todo evento já nasce com o **“Prêmio Destaque: Reconhecendo a Excelência Acadêmica”**.
+- Todo DOCENTE com acesso ao sistema vota em **até dois trabalhos por premiação** (trabalhos do evento, não cancelados). Os votos podem ser retirados ou trocados enquanto o evento não estiver “Rascunho” nem “Publicado”.
+- APRESENTADORES do evento e ADMIN veem a contagem. O mais votado ganha; em empate, **todos os empatados** são premiados.
 
 ## Anais e apresentações
+- Os anais começam com **capa** (fundo azul, “v.N, n.1, mês. ano.”, logotipos do WSI e do IFMG), **folha de rosto** (data do evento, título “ANAIS DO {romano} WORKSHOP DE SISTEMAS DE INFORMAÇÃO”, organizadores = apresentadores do evento, endereço do campus) e **editorial** (texto padrão com os premiados e o(s) trabalho(s) de maior nota final da ATA; a nota não é impressa). Por isso, gere os anais **depois** das avaliações e da votação. O número da edição do evento é obrigatório.
 - O APRESENTADOR gera o PDF das apresentações e os anais (artigos), na **ordem da programação**, usando sempre a versão mais recente de cada arquivo.
 - Arquivos ausentes ou inválidos ficam de fora e aparecem no relatório de inclusão. ATAs, notas, avaliações e declarações nunca entram.
 - O documento fica “aguardando revisão”. O apresentador confere e **publica**, sem aprovação do ADMIN. Uma nova publicação torna a anterior “substituída”.

@@ -9,6 +9,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"wsi/internal/banco"
 	"wsi/internal/fila"
 	"wsi/internal/regras"
 )
@@ -83,6 +84,13 @@ func (s *Servidor) alunoPainel(w http.ResponseWriter, r *http.Request) error {
 	}
 	resp["trabalho"] = trabalho
 	resp["ata"] = ata
+	pareceres := []parecerAluno{}
+	if trabalhoID != "" {
+		if pareceres, err = listarPareceres(ctx, s.pool, trabalhoID); err != nil {
+			return err
+		}
+	}
+	resp["pareceres"] = pareceres
 
 	declaracao, err := resumoDeclaracao(ctx, s.pool, ses.UsuarioID, true)
 	if err != nil {
@@ -91,6 +99,35 @@ func (s *Servidor) alunoPainel(w http.ResponseWriter, r *http.Request) error {
 	resp["declaracao"] = declaracao
 	resp["proximosPassos"] = proximosPassosAluno(orientador, trabalho, ata, declaracao, matricula)
 	return responderOK(w, resp)
+}
+
+// parecerAluno: parecer descritivo de um membro da banca, visível ao aluno para correções do artigo.
+type parecerAluno struct {
+	Avaliador    string  `json:"avaliador"`
+	Papel        string  `json:"papel"`
+	Parecer      string  `json:"parecer"`
+	AtualizadoEm *string `json:"atualizadoEm"`
+}
+
+func listarPareceres(ctx context.Context, q banco.Executor, trabalhoID string) ([]parecerAluno, error) {
+	rows, err := q.Query(ctx, `SELECT u.nome_completo, mb.papel, av.parecer,
+		to_char(av.parecer_atualizado_em AT TIME ZONE 'America/Sao_Paulo', 'DD/MM/YYYY HH24:MI')
+		FROM avaliacoes av JOIN usuarios u ON u.id = av.avaliador_id
+		JOIN membros_banca mb ON mb.trabalho_id = av.trabalho_id AND mb.docente_id = av.avaliador_id AND mb.situacao = 'ativo'
+		WHERE av.trabalho_id = $1 AND trim(av.parecer) <> '' ORDER BY mb.ordem`, trabalhoID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	itens := []parecerAluno{}
+	for rows.Next() {
+		var p parecerAluno
+		if err := rows.Scan(&p.Avaliador, &p.Papel, &p.Parecer, &p.AtualizadoEm); err != nil {
+			return nil, err
+		}
+		itens = append(itens, p)
+	}
+	return itens, rows.Err()
 }
 
 func proximosPassosAluno(o *orientadorResumo, t *trabalhoAluno, ata *ataResumo, d declaracaoResumo, matricula string) []string {
